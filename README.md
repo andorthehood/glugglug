@@ -28,7 +28,7 @@ This engine was built as a WebGL learning exercise with a focus on minimalism ov
 ### Basic Usage (No Caching)
 
 ```typescript
-import { Engine, SpriteLookup } from '@8f4e/2d-engine';
+import { Engine, SpriteLookup } from '@8f4e/glugglug';
 
 // Initialize engine without caching
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -58,7 +58,7 @@ spriteSheet.src = 'spritesheet.png';
 ### With Caching (Recommended for Complex Scenes)
 
 ```typescript
-import { Engine, SpriteLookup, EngineOptions } from '@8f4e/2d-engine';
+import { Engine, SpriteLookup, EngineOptions } from '@8f4e/glugglug';
 
 // Initialize engine with caching enabled
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -126,7 +126,7 @@ The engine supports custom post-processing effects through a flexible shader-bas
 ### Basic Example
 
 ```typescript
-import { Engine, PostProcessEffect } from '@8f4e/2d-engine';
+import { Engine, PostProcessEffect } from '@8f4e/glugglug';
 
 // Create shared buffer for uniform values
 const effectBuffer = new Float32Array(64);
@@ -249,12 +249,12 @@ For complex or frequently reused content (UI panels, static HUD layers, repeated
 - Draw-order segments: During playback, the renderer records segments separating sprite-sheet draws from cached-texture draws, rebinding textures only when necessary to preserve order while minimizing state changes.
 - LRU eviction: Cache entries are tracked with access order and evicted (texture + framebuffer are deleted) when exceeding `maxCacheItems`.
 
-See examples in `packages/2d-engine/examples/cache-usage.md`.
+See examples in `packages/glugglug/examples/cache-usage.md`.
 
 ### Unified Engine API
 
 ```ts
-import { Engine, EngineOptions } from '@8f4e/2d-engine';
+import { Engine, EngineOptions } from '@8f4e/glugglug';
 
 // Enable caching when creating the engine
 const options: EngineOptions = { caching: true, maxCacheItems: 50 };

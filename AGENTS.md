@@ -1,11 +1,11 @@
 # Repository Guidelines
 
 ## Package Scope & Layout
-- Path: `packages/2d-engine`; source in `src/`, output in `dist/` (ES modules).
-- Consumed via workspace alias `@8f4e/2d-engine` after build.
+- Path: `packages/glugglug`; source in `src/`, output in `dist/` (ES modules).
+- Consumed via workspace alias `@8f4e/glugglug` after build.
 
 ## Build, Test, Dev
-- From root: `npx nx run 2d-engine:build|test|typecheck`.
+- From root: `npx nx run glugglug:build|test|typecheck`.
 - From package: `npm run build`, `npm run dev`, `npm run test` (may be `--passWithNoTests`), `npm run typecheck`.
 - Output: `dist/` artifacts referenced by Vite aliases in the root app.
 
@@ -19,5 +19,5 @@
 - Keep tests fast and unit-scoped; no browser required.
 
 ## Commits & PRs
-- Commits: imperative, scoped (e.g., `2d-engine: add sprite util`).
+- Commits: imperative, scoped (e.g., `glugglug: add sprite util`).
 - PRs: include summary, rationale, and test notes; link issues.

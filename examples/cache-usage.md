@@ -7,7 +7,7 @@ This document demonstrates how to use the cache groups feature in the 2D engine 
 ### Option 1: Lightweight Engine (No Caching)
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 const engine = new Engine(canvas);
@@ -22,7 +22,7 @@ engine.render((timeToRender, fps, triangles, maxTriangles) => {
 ### Option 2: Cached Engine (Full Caching Capabilities)
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 const engine = new Engine(canvas, { caching: true, maxCacheItems: 50 }); // Enable caching
@@ -46,7 +46,7 @@ engine.render((timeToRender, fps, triangles, maxTriangles) => {
 ### Option 3: Custom Integration
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
 const engine = new Engine(canvas, { caching: true, maxCacheItems: 30 });
@@ -63,7 +63,7 @@ function cacheComplexUI() {
 ### Complex UI Caching
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const engine = new Engine(canvas, { caching: true });
 
@@ -111,7 +111,7 @@ engine.render((timeToRender, fps, triangles, maxTriangles) => {
 ### Dynamic Content with Caching
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const engine = new Engine(canvas, { caching: true });
 
@@ -145,7 +145,7 @@ class ParticleSystem {
 ### Memory Management
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const engine = new Engine(canvas, { caching: true, maxCacheItems: 20 }); // Limit to 20 cached items
 
@@ -184,7 +184,7 @@ function adaptiveCaching() {
 ### Transform Groups with Caching
 
 ```typescript
-import { Engine } from '@8f4e/glugglug';
+import { Engine } from 'glugglug';
 
 const engine = new Engine(canvas, { caching: true });
 

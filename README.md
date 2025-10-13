@@ -28,7 +28,7 @@ This engine was built as a WebGL learning exercise with a focus on minimalism ov
 ### Basic Usage (No Caching)
 
 ```typescript
-import { Engine, SpriteLookup } from '@8f4e/glugglug';
+import { Engine, SpriteLookup } from 'glugglug';
 
 // Initialize engine without caching
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -58,7 +58,7 @@ spriteSheet.src = 'spritesheet.png';
 ### With Caching (Recommended for Complex Scenes)
 
 ```typescript
-import { Engine, SpriteLookup, EngineOptions } from '@8f4e/glugglug';
+import { Engine, SpriteLookup, EngineOptions } from 'glugglug';
 
 // Initialize engine with caching enabled
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
@@ -126,7 +126,7 @@ The engine supports custom post-processing effects through a flexible shader-bas
 ### Basic Example
 
 ```typescript
-import { Engine, PostProcessEffect } from '@8f4e/glugglug';
+import { Engine, PostProcessEffect } from 'glugglug';
 
 // Create shared buffer for uniform values
 const effectBuffer = new Float32Array(64);
@@ -254,7 +254,7 @@ See examples in `packages/glugglug/examples/cache-usage.md`.
 ### Unified Engine API
 
 ```ts
-import { Engine, EngineOptions } from '@8f4e/glugglug';
+import { Engine, EngineOptions } from 'glugglug';
 
 // Enable caching when creating the engine
 const options: EngineOptions = { caching: true, maxCacheItems: 50 };

@@ -2,7 +2,7 @@
 
 ## Package Scope & Layout
 - Path: `packages/glugglug`; source in `src/`, output in `dist/` (ES modules).
-- Consumed via workspace alias `@8f4e/glugglug` after build.
+- Consumed via workspace alias `glugglug` after build.
 
 ## Build, Test, Dev
 - From root: `npx nx run glugglug:build|test|typecheck`.

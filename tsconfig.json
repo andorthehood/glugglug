@@ -1,7 +1,10 @@
 {
 	"compilerOptions": {
 		"target": "es2022",
-		"lib": ["es2023", "DOM"],
+		"lib": [
+			"es2023",
+			"DOM"
+		],
 		"module": "ESNext",
 		"moduleResolution": "bundler",
 		"allowSyntheticDefaultImports": true,
@@ -13,7 +16,6 @@
 		"downlevelIteration": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"baseUrl": "src",
 		"outDir": "dist",
 		"rootDir": "src",
 		"noEmit": false,

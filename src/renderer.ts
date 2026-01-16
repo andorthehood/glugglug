@@ -16,7 +16,7 @@ import type { PostProcessEffect } from './types/postProcess';
  * Low-level WebGL renderer - handles buffers, shaders, and GPU operations
  */
 export class Renderer {
-	gl: WebGL2RenderingContext | WebGLRenderingContext;
+	gl: WebGL2RenderingContext;
 	program: WebGLProgram;
 	glPositionBuffer: WebGLBuffer;
 	glTextureCoordinateBuffer: WebGLBuffer;
@@ -42,9 +42,9 @@ export class Renderer {
 
 	constructor(canvas: HTMLCanvasElement) {
 		// alpha: false = opaque canvas (slight performance gain)
-		const gl = canvas.getContext('webgl', { antialias: false, alpha: false });
+		const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
 		if (!gl) {
-			throw new Error('Failed to get WebGL context');
+			throw new Error('WebGL2 is required but unavailable');
 		}
 		this.gl = gl;
 
@@ -340,7 +340,7 @@ export class Renderer {
 		this.gl.texImage2D(
 			this.gl.TEXTURE_2D,
 			0,
-			this.gl.RGBA,
+			this.gl.RGBA8,
 			width,
 			height,
 			0,

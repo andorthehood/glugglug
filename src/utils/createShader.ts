@@ -1,9 +1,12 @@
 export default function createShader(
-	gl: WebGL2RenderingContext | WebGLRenderingContext,
+	gl: WebGL2RenderingContext,
 	shaderSource: string,
 	shaderType: number
 ): WebGLShader {
 	const shader = gl.createShader(shaderType);
+	if (!shader) {
+		throw new Error('Failed to create shader');
+	}
 	gl.shaderSource(shader, shaderSource);
 	gl.compileShader(shader);
 

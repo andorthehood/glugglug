@@ -433,7 +433,7 @@ export class CachedRenderer extends Renderer {
 		this.gl.texImage2D(
 			this.gl.TEXTURE_2D,
 			0,
-			this.gl.RGBA,
+			this.gl.RGBA8,
 			width,
 			height,
 			0,

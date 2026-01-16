@@ -7,7 +7,7 @@ import type { PostProcessEffect, EffectUniforms } from '../types/postProcess';
  * Manages post-processing effects with buffer-based uniforms
  */
 export class PostProcessManager {
-	private gl: WebGL2RenderingContext | WebGLRenderingContext;
+	private gl: WebGL2RenderingContext;
 	private effects: PostProcessEffect[] = [];
 	private programs: Map<string, WebGLProgram> = new Map();
 	private uniformLocations: Map<string, Map<string, WebGLUniformLocation>> = new Map();
@@ -24,7 +24,7 @@ export class PostProcessManager {
 	private fallbackProgram: WebGLProgram | null = null;
 	private fallbackTextureLocation: WebGLUniformLocation | null = null;
 
-	constructor(gl: WebGL2RenderingContext | WebGLRenderingContext, bufferSize: number = 256) {
+	constructor(gl: WebGL2RenderingContext, bufferSize: number = 256) {
 		this.gl = gl;
 		this.bufferSize = bufferSize;
 		this.sharedBuffer = new Float32Array(bufferSize);
@@ -223,26 +223,27 @@ export class PostProcessManager {
 	 * Create simple fallback shaders for texture passthrough
 	 */
 	private createFallbackShaders(): void {
-		const fallbackVertexShader = `
-			precision mediump float;
-			attribute vec2 a_position;
-			varying vec2 v_screenCoord;
-			
-			void main() {
-				gl_Position = vec4(a_position, 0, 1);
-				v_screenCoord = (a_position + 1.0) / 2.0;
-			}
-		`;
+		const fallbackVertexShader = `#version 300 es
+precision mediump float;
+in vec2 a_position;
+out vec2 v_screenCoord;
 
-		const fallbackFragmentShader = `
-			precision mediump float;
-			varying vec2 v_screenCoord;
-			uniform sampler2D u_renderTexture;
-			
-			void main() {
-				gl_FragColor = texture2D(u_renderTexture, v_screenCoord);
-			}
-		`;
+void main() {
+	gl_Position = vec4(a_position, 0, 1);
+	v_screenCoord = (a_position + 1.0) / 2.0;
+}
+`;
+
+		const fallbackFragmentShader = `#version 300 es
+precision mediump float;
+in vec2 v_screenCoord;
+uniform sampler2D u_renderTexture;
+out vec4 outColor;
+
+void main() {
+	outColor = texture(u_renderTexture, v_screenCoord);
+}
+`;
 
 		// Compile fallback shaders
 		this.fallbackProgram = createProgram(this.gl, [

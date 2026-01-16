@@ -1,6 +1,7 @@
 # 2D Engine
 
-A minimal WebGL-based 2D rendering engine designed specifically for sprite sheet rendering.
+A minimal WebGL2-based 2D rendering engine designed specifically for sprite sheet rendering.
+Requires WebGL2 and GLSL ES 3.00 shaders (`#version 300 es`).
 
 ## Philosophy
 
@@ -16,7 +17,7 @@ This engine was built as a WebGL learning exercise with a focus on minimalism ov
 ## Features
 
 - **Sprite-only rendering** - Optimized for rendering sprites from a single sprite sheet
-- **WebGL backend** - Hardware-accelerated rendering with custom shaders
+- **WebGL2 backend** - Hardware-accelerated rendering with custom shaders
 - **Batched rendering** - Efficient buffer management for high performance
 - **Pixel-perfect rendering** - No anti-aliasing, nearest-neighbor filtering for retro pixelated look
 - **Post-processing effects** - Flexible shader-based effects system with buffer-based uniforms
@@ -134,34 +135,35 @@ const effectBuffer = new Float32Array(64);
 // Define scanline effect
 const scanlineEffect: PostProcessEffect = {
   name: 'scanlines',
-  vertexShader: `
+  vertexShader: `#version 300 es
     precision mediump float;
-    attribute vec2 a_position;
-    varying vec2 v_screenCoord;
-    
+    in vec2 a_position;
+    out vec2 v_screenCoord;
+
     void main() {
       gl_Position = vec4(a_position, 0, 1);
       v_screenCoord = (a_position + 1.0) / 2.0;
     }
   `,
-  fragmentShader: `
+  fragmentShader: `#version 300 es
     precision mediump float;
-    varying vec2 v_screenCoord;
+    in vec2 v_screenCoord;
     uniform vec2 u_resolution;
     uniform float u_time;
     uniform sampler2D u_renderTexture;
     uniform float u_scanlineIntensity;
-    
+    out vec4 outColor;
+
     void main() {
       vec2 uv = v_screenCoord;
-      vec3 color = texture2D(u_renderTexture, uv).rgb;
-      
+      vec3 color = texture(u_renderTexture, uv).rgb;
+
       // Create scanlines
       float scanline = sin(uv.y * u_resolution.y * 2.0) * 0.5 + 0.5;
       scanline = pow(scanline, 4.0);
-      
+
       color *= scanline * u_scanlineIntensity;
-      gl_FragColor = vec4(color, 1.0);
+      outColor = vec4(color, 1.0);
     }
   `,
   uniforms: {
@@ -434,7 +436,7 @@ type UniformBufferMapping = {
 
 - Single sprite sheet only
 - No rotation or scaling transforms (use groups for positioning)
-- WebGL context required
+- WebGL2 context required
 - No built-in animation system
 
 ## License

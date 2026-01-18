@@ -1,4 +1,5 @@
 import { Renderer } from './renderer';
+import type { ShaderErrorHandler } from './types';
 
 /**
  * CachedRenderer extends the base Renderer with integrated cache management
@@ -19,8 +20,8 @@ export class CachedRenderer extends Renderer {
 	private cacheVertexBuffer: Float32Array;
 	private cacheTexcoordBuffer: Float32Array;
 
-	constructor(canvas: HTMLCanvasElement, maxCacheItems: number = 50) {
-		super(canvas);
+	constructor(canvas: HTMLCanvasElement, maxCacheItems: number = 50, options?: { onShaderError?: ShaderErrorHandler }) {
+		super(canvas, options);
 		this.maxCacheItems = maxCacheItems;
 		this.cacheMap = new Map();
 		this.cacheFramebuffers = new Map();

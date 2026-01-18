@@ -38,9 +38,11 @@ export class Engine {
 		this.cachingEnabled = options?.caching ?? false;
 
 		if (this.cachingEnabled) {
-			this.renderer = new CachedRenderer(canvas, options?.maxCacheItems ?? 50);
+			this.renderer = new CachedRenderer(canvas, options?.maxCacheItems ?? 50, {
+				onShaderError: options?.onShaderError,
+			});
 		} else {
-			this.renderer = new Renderer(canvas);
+			this.renderer = new Renderer(canvas, { onShaderError: options?.onShaderError });
 		}
 
 		// Initialize performance tracking and transform state

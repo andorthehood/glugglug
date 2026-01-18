@@ -2,6 +2,7 @@ import createProgram from '../utils/createProgram';
 import createShader from '../utils/createShader';
 
 import type { PostProcessEffect, EffectUniforms } from '../types/postProcess';
+import type { ShaderErrorHandler } from '../types';
 
 /**
  * Manages post-processing effects with buffer-based uniforms
@@ -24,7 +25,11 @@ export class PostProcessManager {
 	private fallbackProgram: WebGLProgram | null = null;
 	private fallbackTextureLocation: WebGLUniformLocation | null = null;
 
-	constructor(gl: WebGL2RenderingContext, bufferSize: number = 256) {
+	constructor(
+		gl: WebGL2RenderingContext,
+		bufferSize: number = 256,
+		private onShaderError?: ShaderErrorHandler
+	) {
 		this.gl = gl;
 		this.bufferSize = bufferSize;
 		this.sharedBuffer = new Float32Array(bufferSize);
@@ -49,11 +54,30 @@ export class PostProcessManager {
 	 * Add a post-process effect to the pipeline
 	 */
 	addEffect(effect: PostProcessEffect): void {
-		// Compile shaders
-		const program = createProgram(this.gl, [
-			createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER),
-		]);
+		const fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER, {
+			effectName: effect.name,
+			onShaderError: this.onShaderError,
+			allowFailure: true,
+		});
+		const vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER, {
+			effectName: effect.name,
+			onShaderError: this.onShaderError,
+			allowFailure: true,
+		});
+
+		if (!fragmentShader || !vertexShader) {
+			return;
+		}
+
+		const program = createProgram(this.gl, [fragmentShader, vertexShader], {
+			effectName: effect.name,
+			onShaderError: this.onShaderError,
+			allowFailure: true,
+		});
+
+		if (!program) {
+			return;
+		}
 
 		this.programs.set(effect.name, program);
 

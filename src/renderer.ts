@@ -11,6 +11,7 @@ import spriteVertexShader from './shaders/spriteVertexShader';
 import { PostProcessManager } from './postProcess/PostProcessManager';
 
 import type { PostProcessEffect } from './types/postProcess';
+import type { ShaderErrorHandler } from './types';
 
 /**
  * Low-level WebGL renderer - handles buffers, shaders, and GPU operations
@@ -40,7 +41,7 @@ export class Renderer {
 	renderTextureWidth: number;
 	renderTextureHeight: number;
 
-	constructor(canvas: HTMLCanvasElement) {
+	constructor(canvas: HTMLCanvasElement, options?: { onShaderError?: ShaderErrorHandler }) {
 		// alpha: false = opaque canvas (slight performance gain)
 		const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
 		if (!gl) {
@@ -60,7 +61,7 @@ export class Renderer {
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time'); // time uniform for animations
 
 		// Initialize post-processing system
-		this.postProcessManager = new PostProcessManager(this.gl, 256);
+		this.postProcessManager = new PostProcessManager(this.gl, 256, options?.onShaderError);
 
 		// Create GPU buffers (returns WebGLBuffer objects, data uploaded later)
 		this.glTextureCoordinateBuffer = this.gl.createBuffer(); // UV coordinates buffer

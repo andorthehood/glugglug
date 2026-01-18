@@ -92,11 +92,15 @@ engine.render((timeToRender, fps, triangles, maxTriangles) => {
 The unified `Engine` constructor accepts optional configuration:
 
 ```typescript
+import type { ShaderError } from 'glugglug';
+
 interface EngineOptions {
   /** Enable caching functionality. Defaults to false. */
   caching?: boolean;
   /** Maximum number of cache items when caching is enabled. Defaults to 50. */
   maxCacheItems?: number;
+  /** Optional callback for shader compile/link errors. */
+  onShaderError?: (error: ShaderError) => void;
 }
 
 // Examples:

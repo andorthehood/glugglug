@@ -6,7 +6,7 @@
 
 ## Build, Test, Dev
 - From root: `npx nx run glugglug:build|test|typecheck`.
-- From package: `npm run build`, `npm run dev`, `npm run test` (may be `--passWithNoTests`), `npm run typecheck`.
+- From package: use Nx commands (`npx nx run glugglug:build`, `npx nx run glugglug:test`, `npx nx run glugglug:typecheck`), or legacy `npm run` scripts (build, test, typecheck).
 - Output: `dist/` artifacts referenced by Vite aliases in the root app.
 
 ## Coding Style

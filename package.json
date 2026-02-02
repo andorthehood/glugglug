@@ -30,5 +30,7 @@
 	},
 	"homepage": "https://github.com/andorthehood/8f4e#readme",
 	"dependencies": {},
-	"devDependencies": {}
+	"devDependencies": {
+		"jest": "^29.7.0"
+	}
 }

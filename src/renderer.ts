@@ -318,12 +318,18 @@ export class Renderer {
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
 
 		if (a_position !== -1) {
+			if (!this.glPositionBuffer) {
+				throw new Error('Sprite position buffer is not initialized.');
+			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
 			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
 			this.gl.enableVertexAttribArray(a_position);
 		}
 
 		if (a_texcoord !== -1) {
+			if (!this.glTextureCoordinateBuffer) {
+				throw new Error('Sprite texture coordinate buffer is not initialized.');
+			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
 			this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
 			this.gl.enableVertexAttribArray(a_texcoord);

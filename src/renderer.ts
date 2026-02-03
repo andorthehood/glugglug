@@ -54,10 +54,21 @@ export class Renderer {
 		this.gl = gl;
 
 		// Compile and link shader program for sprite rendering
-		this.program = createProgram(this.gl, [
-			createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER),
-		]);
+		const vertexShader = createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER);
+		const fragmentShader = createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER);
+
+		try {
+			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
+
+			// Delete shaders after successful linking to avoid GPU resource leaks
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+		} catch (error) {
+			// Clean up shaders if program creation fails
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+			throw error;
+		}
 
 		// Get shader variable locations (returns -1 if not found)
 		const a_position = this.gl.getAttribLocation(this.program, 'a_position'); // vertex position attribute

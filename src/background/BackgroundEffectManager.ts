@@ -49,10 +49,14 @@ export class BackgroundEffectManager {
 		this.clearEffect();
 
 		// Compile shaders
-		this.program = createProgram(this.gl, [
-			createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER),
-		]);
+		const vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+		const fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
+
+		this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
+
+		// Delete shaders after successful linking to avoid GPU resource leaks
+		this.gl.deleteShader(vertexShader);
+		this.gl.deleteShader(fragmentShader);
 
 		// Get standard uniform locations
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time');
@@ -95,10 +99,11 @@ export class BackgroundEffectManager {
 	/**
 	 * Render the active background effect. Does nothing when no effect is set —
 	 * the framebuffer clear color serves as the background in that case.
+	 * @returns true if an effect was rendered, false otherwise
 	 */
-	render(elapsedTime: number, canvasWidth: number, canvasHeight: number): void {
+	render(elapsedTime: number, canvasWidth: number, canvasHeight: number): boolean {
 		if (!this.effect || !this.program) {
-			return;
+			return false;
 		}
 
 		// Bind full-screen quad
@@ -117,20 +122,31 @@ export class BackgroundEffectManager {
 				const location = this.uniformLocations.get(uniformName);
 				if (location) {
 					const size = mapping.size || 1;
-					const values = this.sharedBuffer.slice(mapping.offset, mapping.offset + size);
+					const base = mapping.offset;
 
 					switch (size) {
 						case 1:
-							this.gl.uniform1f(location, values[0]);
+							this.gl.uniform1f(location, this.sharedBuffer[base]);
 							break;
 						case 2:
-							this.gl.uniform2f(location, values[0], values[1]);
+							this.gl.uniform2f(location, this.sharedBuffer[base], this.sharedBuffer[base + 1]);
 							break;
 						case 3:
-							this.gl.uniform3f(location, values[0], values[1], values[2]);
+							this.gl.uniform3f(
+								location,
+								this.sharedBuffer[base],
+								this.sharedBuffer[base + 1],
+								this.sharedBuffer[base + 2],
+							);
 							break;
 						case 4:
-							this.gl.uniform4f(location, values[0], values[1], values[2], values[3]);
+							this.gl.uniform4f(
+								location,
+								this.sharedBuffer[base],
+								this.sharedBuffer[base + 1],
+								this.sharedBuffer[base + 2],
+								this.sharedBuffer[base + 3],
+							);
 							break;
 					}
 				}
@@ -146,6 +162,8 @@ export class BackgroundEffectManager {
 
 		// Render full-screen quad
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+		return true;
 	}
 
 	/**

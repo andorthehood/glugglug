@@ -83,6 +83,7 @@ const mockGL = {
 	uniform4f: jest.fn(),
 	deleteProgram: jest.fn(),
 	deleteBuffer: jest.fn(),
+	deleteShader: jest.fn(),
 	TRIANGLE_STRIP: 5,
 	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;

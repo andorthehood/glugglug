@@ -454,17 +454,14 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Count calls to getAttribLocation - should be minimal since no background effect rendered
-			const getAttribLocationCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls;
-
-			// When background effect doesn't render, restoreSpriteState shouldn't be called
-			// So we should see fewer getAttribLocation calls compared to when it does render
-			const attributeCallsCount = getAttribLocationCalls.filter(
+			// When background effect doesn't render, restoreSpriteState shouldn't be called after background rendering.
+			// We should only see sprite attribute setup from renderPostProcess (2 attributes),
+			// not from restoreSpriteState after background rendering (which would be 4 total).
+			const attributeCallsCount = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
 				call => call[1] === 'a_position' || call[1] === 'a_texcoord'
 			).length;
 
-			// With no background effect, we should only see sprite attribute setup from renderPostProcess
-			// not from restoreSpriteState after background rendering
+			// Expected: 2 (from renderPostProcess only), not 4 (which would include restoreSpriteState)
 			expect(attributeCallsCount).toBeLessThan(4);
 		});
 

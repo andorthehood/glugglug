@@ -448,20 +448,20 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Verify sprite state restoration after background rendering by counting a_texcoord lookups,
-			// which are unique to sprite rendering (background and post-process managers only use a_position).
-			const getAttribLocationCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls;
-			const texcoordCalls = getAttribLocationCalls.filter(call => call[1] === 'a_texcoord');
+			// Verify sprite state restoration after background rendering by checking that
+			// vertexAttribPointer and enableVertexAttribArray were called for sprite attributes.
+			// Since attribute locations are now cached, we can't rely on getAttribLocation call counts.
+			// Instead, we verify that the attribute setup functions were called the expected number of times.
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
+			const enableVertexAttribArrayCalls = (mockGL.enableVertexAttribArray as jest.Mock).mock.calls;
 
-			// We expect 2 a_texcoord lookups when a background effect is set:
-			// 1 from the always-run restoreSpriteState in renderPostProcess(), plus 1 more from the
-			// restoreSpriteState that runs after the background effect renders.
-			expect(texcoordCalls.length).toBe(2);
-
-			// Verify that vertexAttribPointer and enableVertexAttribArray were used
-			// to set up sprite attributes after state restoration.
-			expect(mockGL.vertexAttribPointer).toHaveBeenCalled();
-			expect(mockGL.enableVertexAttribArray).toHaveBeenCalled();
+			// We expect exactly 6 vertexAttribPointer calls when a background effect is set:
+			// 1 from backgroundEffectManager.render() for a_position
+			// 2 from restoreSpriteState() after background for a_position + a_texcoord
+			// 1 from postProcessManager.render() for a_position
+			// 2 from restoreSpriteState() after post-process for a_position + a_texcoord
+			expect(vertexAttribPointerCalls.length).toBe(6);
+			expect(enableVertexAttribArrayCalls.length).toBe(6);
 		});
 
 		test('should not restore sprite state when no background effect is set', () => {
@@ -471,14 +471,14 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// When no background effect is set, we should only see 1 a_texcoord lookup
-			// (from the always-run restoreSpriteState in renderPostProcess).
-			const texcoordCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
-				call => call[1] === 'a_texcoord',
-			);
+			// When no background effect is set, we should see 3 vertexAttribPointer calls:
+			// 1 from postProcessManager.render() for a_position
+			// 2 from restoreSpriteState() after post-process for a_position + a_texcoord
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
 
-			// Expected: 1 (from renderPostProcess only), not 2 (which would include restoreSpriteState after background)
-			expect(texcoordCalls.length).toBe(1);
+			// Expected: 3 (1 from postProcess + 2 from final restoreSpriteState),
+			// not 4+ (which would include restoreSpriteState after background)
+			expect(vertexAttribPointerCalls.length).toBe(3);
 		});
 
 		test('should handle attribute location -1 gracefully', () => {

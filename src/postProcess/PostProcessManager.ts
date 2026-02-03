@@ -66,21 +66,15 @@ export class PostProcessManager {
 				const offset = (mapping as any).offset;
 				const size = (mapping as any).size;
 
-				if (typeof offset !== 'number' || !Number.isInteger(offset) || !Number.isFinite(offset) || offset < 0) {
+				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
 					throw new Error(
-						`Uniform "${uniformName}" has an invalid offset (${offset}). Offsets must be finite non-negative integers.`,
+						`Uniform "${uniformName}" has an invalid offset (${offset}). Offsets must be non-negative integers.`,
 					);
 				}
 
-				if (
-					typeof size !== 'number' ||
-					!Number.isInteger(size) ||
-					!Number.isFinite(size) ||
-					size < 1 ||
-					size > 4
-				) {
+				if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
 					throw new Error(
-						`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be finite integers between 1 and 4.`,
+						`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be integers between 1 and 4.`,
 					);
 				}
 

@@ -45,6 +45,9 @@ export class Renderer {
 	renderTextureWidth: number;
 	renderTextureHeight: number;
 
+	// Cached sprite attribute locations
+	private spriteAttribLocations: { position: number; texcoord: number } | null = null;
+
 	constructor(canvas: HTMLCanvasElement) {
 		// alpha: false = opaque canvas (slight performance gain)
 		const gl = canvas.getContext('webgl2', { antialias: false, alpha: false });
@@ -77,12 +80,6 @@ export class Renderer {
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord'); // texture coordinate attribute
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time'); // time uniform for animations
 
-		// Initialize post-processing system
-		this.postProcessManager = new PostProcessManager(this.gl, 256);
-
-		// Initialize background effect system
-		this.backgroundEffectManager = new BackgroundEffectManager(this.gl, 256);
-
 		// Create GPU buffers (returns WebGLBuffer objects, data uploaded later)
 		this.glTextureCoordinateBuffer = this.gl.createBuffer(); // UV coordinates buffer
 		this.glPositionBuffer = this.gl.createBuffer(); // vertex positions buffer
@@ -94,6 +91,12 @@ export class Renderer {
 		if (!this.glPositionBuffer) {
 			throw new Error('Failed to create sprite position buffer.');
 		}
+
+		// Initialize post-processing system (after buffer validation)
+		this.postProcessManager = new PostProcessManager(this.gl, 256);
+
+		// Initialize background effect system (after buffer validation)
+		this.backgroundEffectManager = new BackgroundEffectManager(this.gl, 256);
 
 		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); // defines rendering area
 		this.gl.clearColor(0, 0, 0, 1.0); // set clear color to black (RGBA)
@@ -322,19 +325,24 @@ export class Renderer {
 	protected restoreSpriteState(): void {
 		this.gl.useProgram(this.program);
 
-		const a_position = this.gl.getAttribLocation(this.program, 'a_position');
-		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
-
-		if (a_position !== -1) {
-			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
-			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
-			this.gl.enableVertexAttribArray(a_position);
+		// Cache attribute locations on first call to avoid repeated lookups
+		if (!this.spriteAttribLocations) {
+			this.spriteAttribLocations = {
+				position: this.gl.getAttribLocation(this.program, 'a_position'),
+				texcoord: this.gl.getAttribLocation(this.program, 'a_texcoord'),
+			};
 		}
 
-		if (a_texcoord !== -1) {
+		if (this.spriteAttribLocations.position !== -1) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
+			this.gl.vertexAttribPointer(this.spriteAttribLocations.position, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(this.spriteAttribLocations.position);
+		}
+
+		if (this.spriteAttribLocations.texcoord !== -1) {
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
-			this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
-			this.gl.enableVertexAttribArray(a_texcoord);
+			this.gl.vertexAttribPointer(this.spriteAttribLocations.texcoord, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(this.spriteAttribLocations.texcoord);
 		}
 	}
 

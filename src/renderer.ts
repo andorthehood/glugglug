@@ -117,8 +117,8 @@ export class Renderer {
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer); // switch to texture coords buffer
 		this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0); // 2 floats per texture coordinate
 
-		// Enable alpha blending for sprite transparency
-		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA); // standard alpha blending formula
+		// Enable alpha blending for premultiplied-alpha textures (matches createTexture)
+		this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
 		this.gl.enable(this.gl.BLEND); // turn on blending (disabled by default)
 
 		// Enable vertex attributes (make them available to vertex shader)
@@ -476,9 +476,9 @@ export class Renderer {
 		// Use post-process manager to render all effects
 		this.postProcessManager.render(this.renderTexture, elapsedTime, this.gl.canvas.width, this.gl.canvas.height);
 
-		// Re-enable blending for next frame
+		// Re-enable blending for next frame (premultiplied-alpha)
 		this.gl.enable(this.gl.BLEND);
-		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+		this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		// Restore sprite state after post-processing
 		this.restoreSpriteState();

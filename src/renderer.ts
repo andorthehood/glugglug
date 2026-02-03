@@ -54,19 +54,21 @@ export class Renderer {
 		this.gl = gl;
 
 		// Compile and link shader program for sprite rendering
-		const vertexShader = createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER);
-		const fragmentShader = createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER);
+		let vertexShader: WebGLShader | null = null;
+		let fragmentShader: WebGLShader | null = null;
 
 		try {
+			vertexShader = createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER);
+			fragmentShader = createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER);
 			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
 
 			// Delete shaders after successful linking to avoid GPU resource leaks
 			this.gl.deleteShader(vertexShader);
 			this.gl.deleteShader(fragmentShader);
 		} catch (error) {
-			// Clean up shaders if program creation fails
-			this.gl.deleteShader(vertexShader);
-			this.gl.deleteShader(fragmentShader);
+			// Clean up any shaders that were successfully created before the error
+			if (vertexShader) this.gl.deleteShader(vertexShader);
+			if (fragmentShader) this.gl.deleteShader(fragmentShader);
 			throw error;
 		}
 
@@ -309,7 +311,7 @@ export class Renderer {
 	/**
 	 * Restore sprite shader program and vertex attributes after a fullscreen quad render
 	 */
-	restoreSpriteState(): void {
+	protected restoreSpriteState(): void {
 		this.gl.useProgram(this.program);
 
 		const a_position = this.gl.getAttribLocation(this.program, 'a_position');

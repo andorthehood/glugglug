@@ -81,6 +81,10 @@ const mockGL = {
 	uniform2f: jest.fn(),
 	uniform3f: jest.fn(),
 	uniform4f: jest.fn(),
+	deleteProgram: jest.fn(),
+	deleteBuffer: jest.fn(),
+	TRIANGLE_STRIP: 5,
+	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;
 
 // Mock the canvas context
@@ -332,6 +336,65 @@ describe('Engine - Unified API', () => {
 			// Clean up
 			engine.endGroup();
 			engine.endGroup();
+		});
+	});
+
+	describe('Background Effect Methods', () => {
+		let engine: Engine;
+
+		beforeEach(() => {
+			engine = new Engine(mockCanvas);
+		});
+
+		test('should expose background effect API methods', () => {
+			expect(typeof engine.setBackgroundEffect).toBe('function');
+			expect(typeof engine.clearBackgroundEffect).toBe('function');
+			expect(typeof engine.updateBackgroundUniforms).toBe('function');
+			expect(typeof engine.getBackgroundBuffer).toBe('function');
+		});
+
+		test('should return a Float32Array from getBackgroundBuffer', () => {
+			const buffer = engine.getBackgroundBuffer();
+			expect(buffer).toBeInstanceOf(Float32Array);
+		});
+
+		test('should set and clear background effects without throwing', () => {
+			expect(() => {
+				engine.setBackgroundEffect({
+					vertexShader: 'vertex source',
+					fragmentShader: 'fragment source',
+				});
+			}).not.toThrow();
+
+			expect(() => {
+				engine.clearBackgroundEffect();
+			}).not.toThrow();
+		});
+
+		test('should set background effect with uniforms without throwing', () => {
+			const buffer = engine.getBackgroundBuffer();
+			expect(() => {
+				engine.setBackgroundEffect({
+					vertexShader: 'vertex source',
+					fragmentShader: 'fragment source',
+					uniforms: {
+						u_color: { buffer, offset: 0, size: 3 },
+					},
+				});
+			}).not.toThrow();
+		});
+
+		test('should update background uniforms without throwing', () => {
+			expect(() => {
+				engine.updateBackgroundUniforms({ u_color: [1, 0, 0] });
+			}).not.toThrow();
+		});
+
+		test('should expose background effect API with caching enabled', () => {
+			const cachedEngine = new Engine(mockCanvas, { caching: true });
+			expect(typeof cachedEngine.setBackgroundEffect).toBe('function');
+			expect(typeof cachedEngine.clearBackgroundEffect).toBe('function');
+			expect(typeof cachedEngine.getBackgroundBuffer).toBe('function');
 		});
 	});
 });

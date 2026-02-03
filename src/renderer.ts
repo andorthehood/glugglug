@@ -427,24 +427,17 @@ export class Renderer {
 	}
 
 	/**
-	 * Add a post-process effect to the rendering pipeline
+	 * Set the active post-process effect, replacing any previous one
 	 */
-	addPostProcessEffect(effect: PostProcessEffect): void {
-		this.postProcessManager.addEffect(effect);
+	setPostProcessEffect(effect: PostProcessEffect): void {
+		this.postProcessManager.setEffect(effect);
 	}
 
 	/**
-	 * Remove a post-process effect from the pipeline
+	 * Clear the active post-process effect
 	 */
-	removePostProcessEffect(name: string): void {
-		this.postProcessManager.removeEffect(name);
-	}
-
-	/**
-	 * Remove all post-process effects from the pipeline
-	 */
-	removeAllPostProcessEffects(): void {
-		this.postProcessManager.removeAllEffects();
+	clearPostProcessEffect(): void {
+		this.postProcessManager.clearEffect();
 	}
 
 	/**
@@ -452,13 +445,6 @@ export class Renderer {
 	 */
 	updatePostProcessUniforms(uniforms: Record<string, number | number[]>): void {
 		this.postProcessManager.updateUniforms(uniforms);
-	}
-
-	/**
-	 * Enable or disable a post-process effect
-	 */
-	setPostProcessEffectEnabled(name: string, enabled: boolean): void {
-		this.postProcessManager.setEffectEnabled(name, enabled);
 	}
 
 	/**

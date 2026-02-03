@@ -60,6 +60,28 @@ export class BackgroundEffectManager {
 						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
 					);
 				}
+
+				// Validate offset and size to prevent out-of-bounds accesses and NaN uniforms
+				const offset = (mapping as any).offset;
+				const size = (mapping as any).size;
+
+				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
+					throw new Error(
+						`Uniform "${uniformName}" has an invalid offset "${offset}". Offset must be a non-negative integer.`,
+					);
+				}
+
+				if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
+					throw new Error(
+						`Uniform "${uniformName}" has an invalid size "${size}". Size must be an integer between 1 and 4.`,
+					);
+				}
+
+				if (offset + size > this.sharedBuffer.length) {
+					throw new Error(
+						`Uniform "${uniformName}" with offset ${offset} and size ${size} exceeds shared buffer length ${this.sharedBuffer.length}.`,
+					);
+				}
 			}
 		}
 
@@ -170,6 +192,11 @@ export class BackgroundEffectManager {
 								this.sharedBuffer[base + 1],
 								this.sharedBuffer[base + 2],
 								this.sharedBuffer[base + 3],
+							);
+							break;
+						default:
+							console.warn(
+								`BackgroundEffectManager: Unsupported uniform size '${size}' for '${uniformName}'. Expected 1–4.`,
 							);
 							break;
 					}

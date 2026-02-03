@@ -6,7 +6,6 @@ const mockShader = {} as WebGLShader;
 const mockProgram = {} as WebGLProgram;
 const mockBuffer = {} as WebGLBuffer;
 const mockUniformLocation = {} as WebGLUniformLocation;
-const mockTexture = {} as WebGLTexture;
 
 // Mock WebGL2 context
 const createMockGL = () => {

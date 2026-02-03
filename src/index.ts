@@ -1,6 +1,6 @@
 // Export types
 export type { SpriteCoordinates, SpriteLookup, EngineOptions } from './types';
-export type { PostProcessEffect, PostProcessPipeline, EffectUniforms, UniformBufferMapping } from './types/postProcess';
+export type { PostProcessEffect, EffectUniforms, UniformBufferMapping } from './types/postProcess';
 
 // Export main Engine class (public API)
 export { Engine } from './engine';

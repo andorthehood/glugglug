@@ -299,6 +299,16 @@ export class CachedRenderer extends Renderer {
 
 		this.startRenderToTexture();
 
+		// Render background effect before sprites
+		const renderedBackground = this.backgroundEffectManager.render(
+			elapsedTime,
+			this.renderTextureWidth,
+			this.renderTextureHeight,
+		);
+		if (renderedBackground) {
+			this.restoreSpriteState();
+		}
+
 		// Upload buffers once
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
 		this.gl.bufferData(this.gl.ARRAY_BUFFER, this.textureCoordinateBuffer, this.gl.STATIC_DRAW);

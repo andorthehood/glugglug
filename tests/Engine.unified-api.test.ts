@@ -1,4 +1,5 @@
 import { Engine } from '../src/engine';
+import { Renderer } from '../src/renderer';
 
 // Mock canvas and WebGL context
 const mockCanvas = {
@@ -81,6 +82,12 @@ const mockGL = {
 	uniform2f: jest.fn(),
 	uniform3f: jest.fn(),
 	uniform4f: jest.fn(),
+	deleteProgram: jest.fn(),
+	deleteBuffer: jest.fn(),
+	deleteShader: jest.fn(),
+	isEnabled: jest.fn(() => true),
+	TRIANGLE_STRIP: 5,
+	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;
 
 // Mock the canvas context
@@ -332,6 +339,174 @@ describe('Engine - Unified API', () => {
 			// Clean up
 			engine.endGroup();
 			engine.endGroup();
+		});
+	});
+
+	describe('Background Effect Methods', () => {
+		let engine: Engine;
+
+		beforeEach(() => {
+			engine = new Engine(mockCanvas);
+		});
+
+		test('should expose background effect API methods', () => {
+			expect(typeof engine.setBackgroundEffect).toBe('function');
+			expect(typeof engine.clearBackgroundEffect).toBe('function');
+			expect(typeof engine.updateBackgroundUniforms).toBe('function');
+			expect(typeof engine.getBackgroundBuffer).toBe('function');
+		});
+
+		test('should return a Float32Array from getBackgroundBuffer', () => {
+			const buffer = engine.getBackgroundBuffer();
+			expect(buffer).toBeInstanceOf(Float32Array);
+		});
+
+		test('should set and clear background effects without throwing', () => {
+			expect(() => {
+				engine.setBackgroundEffect({
+					vertexShader: 'vertex source',
+					fragmentShader: 'fragment source',
+				});
+			}).not.toThrow();
+
+			expect(() => {
+				engine.clearBackgroundEffect();
+			}).not.toThrow();
+		});
+
+		test('should set background effect with uniforms without throwing', () => {
+			const buffer = engine.getBackgroundBuffer();
+			expect(() => {
+				engine.setBackgroundEffect({
+					vertexShader: 'vertex source',
+					fragmentShader: 'fragment source',
+					uniforms: {
+						u_color: { buffer, offset: 0, size: 3 },
+					},
+				});
+			}).not.toThrow();
+		});
+
+		test('should update background uniforms without throwing', () => {
+			expect(() => {
+				engine.updateBackgroundUniforms({ u_color: [1, 0, 0] });
+			}).not.toThrow();
+		});
+
+		test('should expose background effect API with caching enabled', () => {
+			const cachedEngine = new Engine(mockCanvas, { caching: true });
+			expect(typeof cachedEngine.setBackgroundEffect).toBe('function');
+			expect(typeof cachedEngine.clearBackgroundEffect).toBe('function');
+			expect(typeof cachedEngine.getBackgroundBuffer).toBe('function');
+		});
+	});
+
+	describe('Background Effect Rendering', () => {
+		let renderer: any;
+
+		beforeEach(() => {
+			renderer = new Renderer(mockCanvas);
+			jest.clearAllMocks();
+		});
+
+		test('should render background effect before sprites', () => {
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// Clear mock calls to start fresh
+			jest.clearAllMocks();
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// Verify that the background quad (TRIANGLE_STRIP) is drawn before sprite triangles
+			const drawArraysCalls = (mockGL.drawArrays as jest.Mock).mock.calls;
+			const backgroundCallIndex = drawArraysCalls.findIndex(call => call[0] === mockGL.TRIANGLE_STRIP);
+			const spriteCallIndex = drawArraysCalls.findIndex(call => call[0] === mockGL.TRIANGLES);
+
+			// Ensure both background and sprite draws occurred
+			expect(backgroundCallIndex).not.toBe(-1);
+			expect(spriteCallIndex).not.toBe(-1);
+
+			// Ensure background effect rendered before sprites
+			expect(backgroundCallIndex).toBeLessThan(spriteCallIndex);
+		});
+
+		test('should restore sprite state after background effect renders', () => {
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// Clear mock calls to start fresh
+			jest.clearAllMocks();
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// Verify sprite state restoration after background rendering by checking that
+			// vertexAttribPointer and enableVertexAttribArray were called for sprite attributes.
+			// Since attribute locations are now cached, we can't rely on getAttribLocation call counts.
+			// Instead, we verify that the attribute setup functions were called the expected number of times.
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
+			const enableVertexAttribArrayCalls = (mockGL.enableVertexAttribArray as jest.Mock).mock.calls;
+
+			// We expect exactly 6 vertexAttribPointer calls when a background effect is set:
+			// 1 from backgroundEffectManager.render() for a_position
+			// 2 from restoreSpriteState() after background for a_position + a_texcoord
+			// 1 from postProcessManager.render() for a_position
+			// 2 from restoreSpriteState() after post-process for a_position + a_texcoord
+			expect(vertexAttribPointerCalls.length).toBe(6);
+			expect(enableVertexAttribArrayCalls.length).toBe(6);
+		});
+
+		test('should not restore sprite state when no background effect is set', () => {
+			// Don't set a background effect
+			jest.clearAllMocks();
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// When no background effect is set, we should see 3 vertexAttribPointer calls:
+			// 1 from postProcessManager.render() for a_position
+			// 2 from restoreSpriteState() after post-process for a_position + a_texcoord
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
+
+			// Expected: 3 (1 from postProcess + 2 from final restoreSpriteState),
+			// not 4+ (which would include restoreSpriteState after background)
+			expect(vertexAttribPointerCalls.length).toBe(3);
+		});
+
+		test('should handle attribute location -1 gracefully', () => {
+			// Mock getAttribLocation to return -1 (attribute not found)
+			(mockGL.getAttribLocation as jest.Mock).mockReturnValue(-1);
+
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// This should not throw even with -1 attribute locations
+			expect(() => {
+				renderer.renderWithPostProcessing(0);
+			}).not.toThrow();
+
+			// Verify vertexAttribPointer was not called with -1
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
+			vertexAttribPointerCalls.forEach(call => {
+				expect(call[0]).not.toBe(-1);
+			});
+
+			// Verify enableVertexAttribArray was not called with -1
+			const enableVertexAttribArrayCalls = (mockGL.enableVertexAttribArray as jest.Mock).mock.calls;
+			enableVertexAttribArrayCalls.forEach(call => {
+				expect(call[0]).not.toBe(-1);
+			});
 		});
 	});
 });

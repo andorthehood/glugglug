@@ -9,8 +9,10 @@ import createTexture from './utils/createTexture';
 import spriteFragmentShader from './shaders/spriteFragmentShader';
 import spriteVertexShader from './shaders/spriteVertexShader';
 import { PostProcessManager } from './postProcess/PostProcessManager';
+import { BackgroundEffectManager } from './background/BackgroundEffectManager';
 
 import type { PostProcessEffect } from './types/postProcess';
+import type { BackgroundEffect } from './types/background';
 
 /**
  * Low-level WebGL renderer - handles buffers, shaders, and GPU operations
@@ -34,11 +36,17 @@ export class Renderer {
 	// Post-processing
 	postProcessManager: PostProcessManager;
 
+	// Background effect
+	backgroundEffectManager: BackgroundEffectManager;
+
 	// Render-to-texture
 	renderFramebuffer: WebGLFramebuffer;
 	renderTexture: WebGLTexture;
 	renderTextureWidth: number;
 	renderTextureHeight: number;
+
+	// Cached sprite attribute locations
+	private spriteAttribLocations: { position: number; texcoord: number } | null = null;
 
 	constructor(canvas: HTMLCanvasElement) {
 		// alpha: false = opaque canvas (slight performance gain)
@@ -49,22 +57,46 @@ export class Renderer {
 		this.gl = gl;
 
 		// Compile and link shader program for sprite rendering
-		this.program = createProgram(this.gl, [
-			createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER),
-		]);
+		let vertexShader: WebGLShader | null = null;
+		let fragmentShader: WebGLShader | null = null;
+
+		try {
+			vertexShader = createShader(this.gl, spriteVertexShader, this.gl.VERTEX_SHADER);
+			fragmentShader = createShader(this.gl, spriteFragmentShader, this.gl.FRAGMENT_SHADER);
+			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
+
+			// Delete shaders after successful linking to avoid GPU resource leaks
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+		} catch (error) {
+			// Clean up any shaders that were successfully created before the error
+			if (vertexShader) this.gl.deleteShader(vertexShader);
+			if (fragmentShader) this.gl.deleteShader(fragmentShader);
+			throw error;
+		}
 
 		// Get shader variable locations (returns -1 if not found)
 		const a_position = this.gl.getAttribLocation(this.program, 'a_position'); // vertex position attribute
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord'); // texture coordinate attribute
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time'); // time uniform for animations
 
-		// Initialize post-processing system
-		this.postProcessManager = new PostProcessManager(this.gl, 256);
-
 		// Create GPU buffers (returns WebGLBuffer objects, data uploaded later)
 		this.glTextureCoordinateBuffer = this.gl.createBuffer(); // UV coordinates buffer
 		this.glPositionBuffer = this.gl.createBuffer(); // vertex positions buffer
+
+		// Validate buffer creation up-front to avoid null issues later
+		if (!this.glTextureCoordinateBuffer) {
+			throw new Error('Failed to create sprite texture coordinate buffer.');
+		}
+		if (!this.glPositionBuffer) {
+			throw new Error('Failed to create sprite position buffer.');
+		}
+
+		// Initialize post-processing system (after buffer validation)
+		this.postProcessManager = new PostProcessManager(this.gl, 256);
+
+		// Initialize background effect system (after buffer validation)
+		this.backgroundEffectManager = new BackgroundEffectManager(this.gl, 256);
 
 		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); // defines rendering area
 		this.gl.clearColor(0, 0, 0, 1.0); // set clear color to black (RGBA)
@@ -263,6 +295,17 @@ export class Renderer {
 	renderWithPostProcessing(elapsedTime: number): void {
 		// Phase 1: Render sprites to off-screen texture
 		this.startRenderToTexture();
+
+		// Render background effect before sprites
+		const renderedBackground = this.backgroundEffectManager.render(
+			elapsedTime,
+			this.renderTextureWidth,
+			this.renderTextureHeight,
+		);
+		if (renderedBackground) {
+			this.restoreSpriteState();
+		}
+
 		this.renderVertexBuffer();
 		this.endRenderToTexture();
 
@@ -274,6 +317,33 @@ export class Renderer {
 
 		// Phase 2: Render textured quad to canvas with post-effects
 		this.renderPostProcess(elapsedTime);
+	}
+
+	/**
+	 * Restore sprite shader program and vertex attributes after a fullscreen quad render
+	 */
+	protected restoreSpriteState(): void {
+		this.gl.useProgram(this.program);
+
+		// Cache attribute locations on first call to avoid repeated lookups
+		if (!this.spriteAttribLocations) {
+			this.spriteAttribLocations = {
+				position: this.gl.getAttribLocation(this.program, 'a_position'),
+				texcoord: this.gl.getAttribLocation(this.program, 'a_texcoord'),
+			};
+		}
+
+		if (this.spriteAttribLocations.position !== -1) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
+			this.gl.vertexAttribPointer(this.spriteAttribLocations.position, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(this.spriteAttribLocations.position);
+		}
+
+		if (this.spriteAttribLocations.texcoord !== -1) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
+			this.gl.vertexAttribPointer(this.spriteAttribLocations.texcoord, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(this.spriteAttribLocations.texcoord);
+		}
 	}
 
 	/**
@@ -410,20 +480,8 @@ export class Renderer {
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-		// Switch back to main shader program for next frame
-		this.gl.useProgram(this.program);
-
-		// Re-enable main shader attributes
-		const main_a_position = this.gl.getAttribLocation(this.program, 'a_position');
-		const main_a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
-		this.gl.vertexAttribPointer(main_a_position, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(main_a_position);
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
-		this.gl.vertexAttribPointer(main_a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(main_a_texcoord);
+		// Restore sprite state after post-processing
+		this.restoreSpriteState();
 	}
 
 	/**
@@ -452,5 +510,33 @@ export class Renderer {
 	 */
 	getPostProcessBuffer(): Float32Array {
 		return this.postProcessManager.getBuffer();
+	}
+
+	/**
+	 * Set the active background effect, replacing any previous one
+	 */
+	setBackgroundEffect(effect: BackgroundEffect): void {
+		this.backgroundEffectManager.setEffect(effect);
+	}
+
+	/**
+	 * Clear the active background effect
+	 */
+	clearBackgroundEffect(): void {
+		this.backgroundEffectManager.clearEffect();
+	}
+
+	/**
+	 * Update uniform values in the background effect buffer
+	 */
+	updateBackgroundUniforms(uniforms: Record<string, number | number[]>): void {
+		this.backgroundEffectManager.updateUniforms(uniforms);
+	}
+
+	/**
+	 * Get direct access to the background effect uniform buffer
+	 */
+	getBackgroundBuffer(): Float32Array {
+		return this.backgroundEffectManager.getBuffer();
 	}
 }

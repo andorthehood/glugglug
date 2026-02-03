@@ -53,10 +53,21 @@ export class PostProcessManager {
 		this.clearEffect();
 
 		// Compile shaders
-		this.program = createProgram(this.gl, [
-			createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER),
-		]);
+		const vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+		const fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
+
+		try {
+			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
+
+			// Delete shaders after successful linking to avoid GPU resource leaks
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+		} catch (error) {
+			// Clean up shaders if program creation fails
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+			throw error;
+		}
 
 		// Get standard uniform locations
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time');
@@ -220,10 +231,21 @@ void main() {
 `;
 
 		// Compile fallback shaders
-		this.fallbackProgram = createProgram(this.gl, [
-			createShader(this.gl, fallbackFragmentShader, this.gl.FRAGMENT_SHADER),
-			createShader(this.gl, fallbackVertexShader, this.gl.VERTEX_SHADER),
-		]);
+		const vertexShader = createShader(this.gl, fallbackVertexShader, this.gl.VERTEX_SHADER);
+		const fragmentShader = createShader(this.gl, fallbackFragmentShader, this.gl.FRAGMENT_SHADER);
+
+		try {
+			this.fallbackProgram = createProgram(this.gl, [fragmentShader, vertexShader]);
+
+			// Delete shaders after successful linking to avoid GPU resource leaks
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+		} catch (error) {
+			// Clean up shaders if program creation fails
+			this.gl.deleteShader(vertexShader);
+			this.gl.deleteShader(fragmentShader);
+			throw error;
+		}
 
 		// Get texture uniform location
 		this.fallbackTextureLocation = this.gl.getUniformLocation(this.fallbackProgram, 'u_renderTexture');

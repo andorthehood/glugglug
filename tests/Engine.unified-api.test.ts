@@ -454,14 +454,14 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// When background effect doesn't render, restoreSpriteState shouldn't be called after background rendering.
-			// We should only see sprite attribute setup from renderPostProcess (2 attributes),
-			// not from restoreSpriteState after background rendering (which would be 4 total).
+			// When no background effect is set, renderPostProcess still calls restoreSpriteState once.
+			// We should only see sprite attribute setup from that single call (2 attribute locations).
+			// The optimization prevents an additional restoreSpriteState after background rendering, which would be 4 total.
 			const attributeCallsCount = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
 				call => call[1] === 'a_position' || call[1] === 'a_texcoord'
 			).length;
 
-			// Expected: 2 (from renderPostProcess only), not 4 (which would include restoreSpriteState)
+			// Expected: 2 (from renderPostProcess only), not 4 (which would include restoreSpriteState after background)
 			expect(attributeCallsCount).toBeLessThan(4);
 		});
 
@@ -483,6 +483,12 @@ describe('Engine - Unified API', () => {
 			// Verify vertexAttribPointer was not called with -1
 			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
 			vertexAttribPointerCalls.forEach(call => {
+				expect(call[0]).not.toBe(-1);
+			});
+
+			// Verify enableVertexAttribArray was not called with -1
+			const enableVertexAttribArrayCalls = (mockGL.enableVertexAttribArray as jest.Mock).mock.calls;
+			enableVertexAttribArrayCalls.forEach(call => {
 				expect(call[0]).not.toBe(-1);
 			});
 		});

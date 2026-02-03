@@ -1,4 +1,5 @@
 import { Engine } from '../src/engine';
+import { Renderer } from '../src/renderer';
 
 // Mock canvas and WebGL context
 const mockCanvas = {
@@ -400,8 +401,6 @@ describe('Engine - Unified API', () => {
 	});
 
 	describe('Background Effect Rendering', () => {
-		// Import Renderer for direct testing
-		const Renderer = require('../src/renderer').Renderer;
 		let renderer: any;
 
 		beforeEach(() => {
@@ -410,6 +409,11 @@ describe('Engine - Unified API', () => {
 		});
 
 		test('should render background effect before sprites', () => {
+			// First, render without a background effect to get baseline useProgram calls
+			renderer.renderWithPostProcessing(0);
+			const baselineUseProgramCalls = (mockGL.useProgram as jest.Mock).mock.calls.length;
+			jest.clearAllMocks();
+
 			// Set up a background effect
 			renderer.setBackgroundEffect({
 				vertexShader: 'vertex source',
@@ -419,9 +423,10 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Verify that useProgram was called (background shader, then sprite shader)
+			// Verify that useProgram was called MORE times with background effect
+			// (once for background shader, then for sprite shader)
 			const useProgramCalls = (mockGL.useProgram as jest.Mock).mock.calls;
-			expect(useProgramCalls.length).toBeGreaterThan(0);
+			expect(useProgramCalls.length).toBeGreaterThan(baselineUseProgramCalls);
 		});
 
 		test('should restore sprite state after background effect renders', () => {

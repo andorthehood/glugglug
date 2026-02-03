@@ -319,7 +319,7 @@ export class Renderer {
 
 		if (a_position !== -1) {
 			if (!this.glPositionBuffer) {
-				throw new Error('Sprite position buffer (glPositionBuffer) is not initialized.');
+				throw new Error('Sprite position buffer is not initialized.');
 			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
 			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
@@ -328,7 +328,7 @@ export class Renderer {
 
 		if (a_texcoord !== -1) {
 			if (!this.glTextureCoordinateBuffer) {
-				throw new Error('Sprite texture coordinate buffer (glTextureCoordinateBuffer) is not initialized.');
+				throw new Error('Sprite texture coordinate buffer is not initialized.');
 			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
 			this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);

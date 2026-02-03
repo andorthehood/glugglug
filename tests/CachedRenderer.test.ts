@@ -79,6 +79,9 @@ const mockGL = {
 	uniform2f: jest.fn(),
 	uniform3f: jest.fn(),
 	uniform4f: jest.fn(),
+	deleteShader: jest.fn(),
+	deleteProgram: jest.fn(),
+	deleteBuffer: jest.fn(),
 } as unknown as WebGL2RenderingContext;
 
 // Mock the canvas context

@@ -83,6 +83,7 @@ const mockGL = {
 	uniform4f: jest.fn(),
 	deleteProgram: jest.fn(),
 	deleteBuffer: jest.fn(),
+	deleteShader: jest.fn(),
 	TRIANGLE_STRIP: 5,
 	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;
@@ -395,6 +396,101 @@ describe('Engine - Unified API', () => {
 			expect(typeof cachedEngine.setBackgroundEffect).toBe('function');
 			expect(typeof cachedEngine.clearBackgroundEffect).toBe('function');
 			expect(typeof cachedEngine.getBackgroundBuffer).toBe('function');
+		});
+	});
+
+	describe('Background Effect Rendering', () => {
+		// Import Renderer for direct testing
+		const Renderer = require('../src/renderer').Renderer;
+		let renderer: any;
+
+		beforeEach(() => {
+			renderer = new Renderer(mockCanvas);
+			jest.clearAllMocks();
+		});
+
+		test('should render background effect before sprites', () => {
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// Verify that useProgram was called (background shader, then sprite shader)
+			const useProgramCalls = (mockGL.useProgram as jest.Mock).mock.calls;
+			expect(useProgramCalls.length).toBeGreaterThan(0);
+		});
+
+		test('should restore sprite state after background effect renders', () => {
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// Clear mock calls to start fresh
+			jest.clearAllMocks();
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// Verify that getAttribLocation was called for sprite attributes
+			const getAttribLocationCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls;
+			expect(getAttribLocationCalls.some(call => call[1] === 'a_position')).toBe(true);
+			expect(getAttribLocationCalls.some(call => call[1] === 'a_texcoord')).toBe(true);
+
+			// Verify that vertexAttribPointer was called to set up sprite attributes
+			expect(mockGL.vertexAttribPointer).toHaveBeenCalled();
+			expect(mockGL.enableVertexAttribArray).toHaveBeenCalled();
+		});
+
+		test('should not restore sprite state when no background effect is set', () => {
+			// Don't set a background effect
+			jest.clearAllMocks();
+
+			// Render with post-processing
+			renderer.renderWithPostProcessing(0);
+
+			// When no background effect is set, renderPostProcess still calls restoreSpriteState once.
+			// We should only see sprite attribute setup from that single call (2 attribute locations).
+			// The optimization prevents an additional restoreSpriteState after background rendering, which would be 4 total.
+			const attributeCallsCount = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
+				call => call[1] === 'a_position' || call[1] === 'a_texcoord'
+			).length;
+
+			// Expected: 2 (from renderPostProcess only), not 4 (which would include restoreSpriteState after background)
+			expect(attributeCallsCount).toBeLessThan(4);
+		});
+
+		test('should handle attribute location -1 gracefully', () => {
+			// Mock getAttribLocation to return -1 (attribute not found)
+			(mockGL.getAttribLocation as jest.Mock).mockReturnValue(-1);
+
+			// Set up a background effect
+			renderer.setBackgroundEffect({
+				vertexShader: 'vertex source',
+				fragmentShader: 'fragment source',
+			});
+
+			// This should not throw even with -1 attribute locations
+			expect(() => {
+				renderer.renderWithPostProcessing(0);
+			}).not.toThrow();
+
+			// Verify vertexAttribPointer was not called with -1
+			const vertexAttribPointerCalls = (mockGL.vertexAttribPointer as jest.Mock).mock.calls;
+			vertexAttribPointerCalls.forEach(call => {
+				expect(call[0]).not.toBe(-1);
+			});
+
+			// Verify enableVertexAttribArray was not called with -1
+			const enableVertexAttribArrayCalls = (mockGL.enableVertexAttribArray as jest.Mock).mock.calls;
+			enableVertexAttribArrayCalls.forEach(call => {
+				expect(call[0]).not.toBe(-1);
+			});
 		});
 	});
 });

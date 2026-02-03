@@ -27,7 +27,10 @@ export class BackgroundEffectManager {
 		this.sharedBuffer = new Float32Array(bufferSize);
 
 		// Create position buffer for full-screen quad
-		this.positionBuffer = this.gl.createBuffer()!;
+		this.positionBuffer = this.gl.createBuffer();
+		if (!this.positionBuffer) {
+			throw new Error('Failed to create WebGL buffer for background effect');
+		}
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
 		const quadVertices = new Float32Array([
 			-1,
@@ -118,7 +121,7 @@ export class BackgroundEffectManager {
 	 * @returns true if an effect was rendered, false otherwise
 	 */
 	render(elapsedTime: number, canvasWidth: number, canvasHeight: number): boolean {
-		if (!this.effect || !this.program) {
+		if (!this.effect || !this.program || !this.positionBuffer) {
 			return false;
 		}
 

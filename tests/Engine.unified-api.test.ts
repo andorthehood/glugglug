@@ -85,6 +85,7 @@ const mockGL = {
 	deleteProgram: jest.fn(),
 	deleteBuffer: jest.fn(),
 	deleteShader: jest.fn(),
+	isEnabled: jest.fn(() => true),
 	TRIANGLE_STRIP: 5,
 	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;
@@ -447,12 +448,25 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Verify that getAttribLocation was called for sprite attributes
+			// Verify that getAttribLocation was called for sprite attributes,
+			// and that we see more attribute setups than the baseline restoreSpriteState
+			// invoked by renderPostProcess() alone (which accounts for 2 calls).
 			const getAttribLocationCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls;
-			expect(getAttribLocationCalls.some(call => call[1] === 'a_position')).toBe(true);
-			expect(getAttribLocationCalls.some(call => call[1] === 'a_texcoord')).toBe(true);
+			const spriteAttributeCalls = getAttribLocationCalls.filter(
+				call => call[1] === 'a_position' || call[1] === 'a_texcoord',
+			);
 
-			// Verify that vertexAttribPointer was called to set up sprite attributes
+			// We expect at least 4 sprite attribute location lookups when a background effect is set:
+			// 2 from the always-run restoreSpriteState in renderPostProcess(), plus 2 more from the
+			// restoreSpriteState that runs after the background effect renders.
+			expect(spriteAttributeCalls.length).toBeGreaterThanOrEqual(4);
+
+			// Sanity check: both attributes should be present among the calls
+			expect(spriteAttributeCalls.some(call => call[1] === 'a_position')).toBe(true);
+			expect(spriteAttributeCalls.some(call => call[1] === 'a_texcoord')).toBe(true);
+
+			// Verify that vertexAttribPointer and enableVertexAttribArray were used
+			// to set up sprite attributes after state restoration.
 			expect(mockGL.vertexAttribPointer).toHaveBeenCalled();
 			expect(mockGL.enableVertexAttribArray).toHaveBeenCalled();
 		});

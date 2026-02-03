@@ -52,6 +52,18 @@ export class PostProcessManager {
 		// Clear previous effect if any
 		this.clearEffect();
 
+		// Validate uniform buffer mappings BEFORE shader compilation to avoid GPU leaks
+		if (effect.uniforms) {
+			for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
+				// Validate that all mappings reference this manager's shared buffer
+				if (mapping.buffer !== this.sharedBuffer) {
+					throw new Error(
+						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
+					);
+				}
+			}
+		}
+
 		// Compile shaders
 		let vertexShader: WebGLShader | null = null;
 		let fragmentShader: WebGLShader | null = null;
@@ -79,14 +91,7 @@ export class PostProcessManager {
 		// Get custom uniform locations from buffer mapping
 		this.uniformLocations.clear();
 		if (effect.uniforms) {
-			for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
-				// Validate that all mappings reference this manager's shared buffer
-				if (mapping.buffer !== this.sharedBuffer) {
-					throw new Error(
-						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
-					);
-				}
-
+			for (const uniformName of Object.keys(effect.uniforms)) {
 				const location = this.gl.getUniformLocation(this.program, uniformName);
 				if (location) {
 					this.uniformLocations.set(uniformName, location);

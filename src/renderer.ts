@@ -273,8 +273,14 @@ export class Renderer {
 		this.startRenderToTexture();
 
 		// Render background effect before sprites
-		this.backgroundEffectManager.render(elapsedTime, this.renderTextureWidth, this.renderTextureHeight);
-		this.restoreSpriteState();
+		const renderedBackground = this.backgroundEffectManager.render(
+			elapsedTime,
+			this.renderTextureWidth,
+			this.renderTextureHeight,
+		);
+		if (renderedBackground) {
+			this.restoreSpriteState();
+		}
 
 		this.renderVertexBuffer();
 		this.endRenderToTexture();
@@ -298,13 +304,17 @@ export class Renderer {
 		const a_position = this.gl.getAttribLocation(this.program, 'a_position');
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
-		this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(a_position);
+		if (a_position !== -1) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
+			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(a_position);
+		}
 
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
-		this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(a_texcoord);
+		if (a_texcoord !== -1) {
+			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
+			this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(a_texcoord);
+		}
 	}
 
 	/**
@@ -441,20 +451,8 @@ export class Renderer {
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
-		// Switch back to main shader program for next frame
-		this.gl.useProgram(this.program);
-
-		// Re-enable main shader attributes
-		const main_a_position = this.gl.getAttribLocation(this.program, 'a_position');
-		const main_a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
-		this.gl.vertexAttribPointer(main_a_position, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(main_a_position);
-
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
-		this.gl.vertexAttribPointer(main_a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(main_a_texcoord);
+		// Restore sprite state after post-processing
+		this.restoreSpriteState();
 	}
 
 	/**

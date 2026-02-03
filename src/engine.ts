@@ -3,6 +3,7 @@ import { CachedRenderer } from './CachedRenderer';
 
 import type { SpriteLookup, EngineOptions } from './types';
 import type { PostProcessEffect } from './types/postProcess';
+import type { BackgroundEffect } from './types/background';
 
 /**
  * High-level 2D engine - provides convenient drawing methods using sprite lookup
@@ -317,6 +318,34 @@ export class Engine {
 	 */
 	getPostProcessBuffer(): Float32Array {
 		return this.renderer.getPostProcessBuffer();
+	}
+
+	/**
+	 * Set the active background effect, replacing any previous one
+	 */
+	setBackgroundEffect(effect: BackgroundEffect): void {
+		this.renderer.setBackgroundEffect(effect);
+	}
+
+	/**
+	 * Clear the active background effect
+	 */
+	clearBackgroundEffect(): void {
+		this.renderer.clearBackgroundEffect();
+	}
+
+	/**
+	 * Update uniform values in the background effect buffer
+	 */
+	updateBackgroundUniforms(uniforms: Record<string, number | number[]>): void {
+		this.renderer.updateBackgroundUniforms(uniforms);
+	}
+
+	/**
+	 * Get direct access to the background effect uniform buffer
+	 */
+	getBackgroundBuffer(): Float32Array {
+		return this.renderer.getBackgroundBuffer();
 	}
 
 	// Caching methods (only available when caching is enabled)

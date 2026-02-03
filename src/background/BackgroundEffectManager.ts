@@ -15,7 +15,7 @@ export class BackgroundEffectManager {
 	private uniformLocations: Map<string, WebGLUniformLocation> = new Map();
 	private sharedBuffer: Float32Array;
 	private bufferSize: number;
-	private positionBuffer: WebGLBuffer;
+	private positionBuffer: WebGLBuffer | null;
 
 	// Standard uniform locations for the active effect
 	private timeLocation: WebGLUniformLocation | null = null;
@@ -27,7 +27,10 @@ export class BackgroundEffectManager {
 		this.sharedBuffer = new Float32Array(bufferSize);
 
 		// Create position buffer for full-screen quad
-		this.positionBuffer = this.gl.createBuffer()!;
+		this.positionBuffer = this.gl.createBuffer();
+		if (!this.positionBuffer) {
+			throw new Error('Failed to create WebGL buffer for background effect');
+		}
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
 		const quadVertices = new Float32Array([
 			-1,
@@ -48,20 +51,34 @@ export class BackgroundEffectManager {
 	setEffect(effect: BackgroundEffect): void {
 		this.clearEffect();
 
+		// Validate uniform buffer mappings BEFORE shader compilation to avoid GPU leaks
+		if (effect.uniforms) {
+			for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
+				// Validate that all mappings reference this manager's shared buffer
+				if (mapping.buffer !== this.sharedBuffer) {
+					throw new Error(
+						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
+					);
+				}
+			}
+		}
+
 		// Compile shaders
-		const vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
-		const fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
+		let vertexShader: WebGLShader | null = null;
+		let fragmentShader: WebGLShader | null = null;
 
 		try {
+			vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+			fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
 			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
 
 			// Delete shaders after successful linking to avoid GPU resource leaks
 			this.gl.deleteShader(vertexShader);
 			this.gl.deleteShader(fragmentShader);
 		} catch (error) {
-			// Clean up shaders if program creation fails
-			this.gl.deleteShader(vertexShader);
-			this.gl.deleteShader(fragmentShader);
+			// Clean up any shaders that were successfully created before the error
+			if (vertexShader) this.gl.deleteShader(vertexShader);
+			if (fragmentShader) this.gl.deleteShader(fragmentShader);
 			throw error;
 		}
 
@@ -109,7 +126,7 @@ export class BackgroundEffectManager {
 	 * @returns true if an effect was rendered, false otherwise
 	 */
 	render(elapsedTime: number, canvasWidth: number, canvasHeight: number): boolean {
-		if (!this.effect || !this.program) {
+		if (!this.effect || !this.program || !this.positionBuffer) {
 			return false;
 		}
 
@@ -199,13 +216,13 @@ export class BackgroundEffectManager {
 	 * Clean up resources
 	 */
 	dispose(): void {
-		if (this.program) {
-			this.gl.deleteProgram(this.program);
-		}
-		this.uniformLocations.clear();
+		// Clear the active effect and associated program/uniform state
+		this.clearEffect();
 
+		// Delete and null out shared geometry buffer; make dispose idempotent
 		if (this.positionBuffer) {
 			this.gl.deleteBuffer(this.positionBuffer);
+			this.positionBuffer = null;
 		}
 	}
 }

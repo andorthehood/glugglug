@@ -53,19 +53,21 @@ export class PostProcessManager {
 		this.clearEffect();
 
 		// Compile shaders
-		const vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
-		const fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
+		let vertexShader: WebGLShader | null = null;
+		let fragmentShader: WebGLShader | null = null;
 
 		try {
+			vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+			fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
 			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
 
 			// Delete shaders after successful linking to avoid GPU resource leaks
 			this.gl.deleteShader(vertexShader);
 			this.gl.deleteShader(fragmentShader);
 		} catch (error) {
-			// Clean up shaders if program creation fails
-			this.gl.deleteShader(vertexShader);
-			this.gl.deleteShader(fragmentShader);
+			// Clean up any shaders that were successfully created before the error
+			if (vertexShader) this.gl.deleteShader(vertexShader);
+			if (fragmentShader) this.gl.deleteShader(fragmentShader);
 			throw error;
 		}
 
@@ -77,7 +79,14 @@ export class PostProcessManager {
 		// Get custom uniform locations from buffer mapping
 		this.uniformLocations.clear();
 		if (effect.uniforms) {
-			for (const uniformName of Object.keys(effect.uniforms)) {
+			for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
+				// Validate that all mappings reference this manager's shared buffer
+				if (mapping.buffer !== this.sharedBuffer) {
+					throw new Error(
+						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
+					);
+				}
+
 				const location = this.gl.getUniformLocation(this.program, uniformName);
 				if (location) {
 					this.uniformLocations.set(uniformName, location);
@@ -231,19 +240,21 @@ void main() {
 `;
 
 		// Compile fallback shaders
-		const vertexShader = createShader(this.gl, fallbackVertexShader, this.gl.VERTEX_SHADER);
-		const fragmentShader = createShader(this.gl, fallbackFragmentShader, this.gl.FRAGMENT_SHADER);
+		let vertexShader: WebGLShader | null = null;
+		let fragmentShader: WebGLShader | null = null;
 
 		try {
+			vertexShader = createShader(this.gl, fallbackVertexShader, this.gl.VERTEX_SHADER);
+			fragmentShader = createShader(this.gl, fallbackFragmentShader, this.gl.FRAGMENT_SHADER);
 			this.fallbackProgram = createProgram(this.gl, [fragmentShader, vertexShader]);
 
 			// Delete shaders after successful linking to avoid GPU resource leaks
 			this.gl.deleteShader(vertexShader);
 			this.gl.deleteShader(fragmentShader);
 		} catch (error) {
-			// Clean up shaders if program creation fails
-			this.gl.deleteShader(vertexShader);
-			this.gl.deleteShader(fragmentShader);
+			// Clean up any shaders that were successfully created before the error
+			if (vertexShader) this.gl.deleteShader(vertexShader);
+			if (fragmentShader) this.gl.deleteShader(fragmentShader);
 			throw error;
 		}
 

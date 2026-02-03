@@ -4,6 +4,10 @@
 
 **Commit:** 9f6eeeb (fix: remove node_modules from git history and add incident report)
 
+**Agent:** GitHub Copilot Workspace Agent
+
+**Model:** Claude 3.5 Sonnet
+
 **Severity:** Low
 
 ## What Happened

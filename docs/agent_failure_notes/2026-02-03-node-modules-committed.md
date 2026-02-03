@@ -4,6 +4,10 @@
 
 **Commit:** 7077dc5 (fix: optimize background effect rendering and fix shader leak)
 
+**Agent:** GitHub Copilot Workspace Agent
+
+**Model:** Claude 3.5 Sonnet
+
 **Severity:** Medium
 
 ## What Happened

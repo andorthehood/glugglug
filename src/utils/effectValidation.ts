@@ -18,7 +18,7 @@ export function validateUniformMappings(
 		// Validate that all mappings reference the shared buffer
 		if (mapping.buffer !== sharedBuffer) {
 			throw new Error(
-				`Uniform "${uniformName}" references a different buffer. All uniforms must use the shared buffer returned by the manager/engine buffer getter.`,
+				`Uniform "${uniformName}" references a different buffer. All uniforms must use the shared buffer returned by Engine.getPostProcessBuffer(), Engine.getBackgroundBuffer(), or PostProcessManager.getBuffer().`,
 			);
 		}
 

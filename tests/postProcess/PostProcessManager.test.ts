@@ -81,7 +81,7 @@ describe('PostProcessManager', () => {
 			};
 
 			expect(() => manager.setEffect(effect)).toThrow(
-				'Uniform "testUniform" references a different buffer. All uniforms must use the shared buffer returned by the manager/engine buffer getter.',
+				'Uniform "testUniform" references a different buffer. All uniforms must use the shared buffer returned by Engine.getPostProcessBuffer(), Engine.getBackgroundBuffer(), or PostProcessManager.getBuffer().',
 			);
 		});
 

@@ -6,7 +6,7 @@
 
 **Agent:** GitHub Copilot Workspace Agent
 
-**Model:** Claude 3.5 Sonnet
+**Model:** Claude Sonnet 4.5
 
 **Severity:** Medium
 

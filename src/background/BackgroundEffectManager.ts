@@ -103,7 +103,7 @@ export class BackgroundEffectManager {
 			if (!mapping) continue;
 
 			if (Array.isArray(value)) {
-				for (let i = 0; i < value.length && i < (mapping.size || 1); i++) {
+				for (let i = 0; i < value.length && i < (mapping.size ?? 1); i++) {
 					this.sharedBuffer[mapping.offset + i] = value[i];
 				}
 			} else {

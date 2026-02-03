@@ -85,6 +85,7 @@ const mockGL = {
 	deleteProgram: jest.fn(),
 	deleteBuffer: jest.fn(),
 	deleteShader: jest.fn(),
+	isEnabled: jest.fn(() => true),
 	TRIANGLE_STRIP: 5,
 	RGBA8: 33506,
 } as unknown as WebGL2RenderingContext;
@@ -447,12 +448,18 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Verify that getAttribLocation was called for sprite attributes
+			// Verify sprite state restoration after background rendering by counting a_texcoord lookups,
+			// which are unique to sprite rendering (background and post-process managers only use a_position).
 			const getAttribLocationCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls;
-			expect(getAttribLocationCalls.some(call => call[1] === 'a_position')).toBe(true);
-			expect(getAttribLocationCalls.some(call => call[1] === 'a_texcoord')).toBe(true);
+			const texcoordCalls = getAttribLocationCalls.filter(call => call[1] === 'a_texcoord');
 
-			// Verify that vertexAttribPointer was called to set up sprite attributes
+			// We expect 2 a_texcoord lookups when a background effect is set:
+			// 1 from the always-run restoreSpriteState in renderPostProcess(), plus 1 more from the
+			// restoreSpriteState that runs after the background effect renders.
+			expect(texcoordCalls.length).toBe(2);
+
+			// Verify that vertexAttribPointer and enableVertexAttribArray were used
+			// to set up sprite attributes after state restoration.
 			expect(mockGL.vertexAttribPointer).toHaveBeenCalled();
 			expect(mockGL.enableVertexAttribArray).toHaveBeenCalled();
 		});
@@ -464,15 +471,14 @@ describe('Engine - Unified API', () => {
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// When no background effect is set, renderPostProcess still calls restoreSpriteState once.
-			// We should only see sprite attribute setup from that single call (2 attribute locations).
-			// The optimization prevents an additional restoreSpriteState after background rendering, which would be 4 total.
-			const attributeCallsCount = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
-				call => call[1] === 'a_position' || call[1] === 'a_texcoord'
-			).length;
+			// When no background effect is set, we should only see 1 a_texcoord lookup
+			// (from the always-run restoreSpriteState in renderPostProcess).
+			const texcoordCalls = (mockGL.getAttribLocation as jest.Mock).mock.calls.filter(
+				call => call[1] === 'a_texcoord',
+			);
 
-			// Expected: 2 (from renderPostProcess only), not 4 (which would include restoreSpriteState after background)
-			expect(attributeCallsCount).toBeLessThan(4);
+			// Expected: 1 (from renderPostProcess only), not 2 (which would include restoreSpriteState after background)
+			expect(texcoordCalls.length).toBe(1);
 		});
 
 		test('should handle attribute location -1 gracefully', () => {

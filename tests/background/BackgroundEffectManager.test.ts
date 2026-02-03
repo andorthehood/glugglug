@@ -75,7 +75,7 @@ describe('BackgroundEffectManager', () => {
 			};
 
 			expect(() => manager.setEffect(effect)).toThrow(
-				'Uniform "testUniform" references a different buffer. All uniforms must use the buffer from getBuffer().',
+				'Uniform "testUniform" references a different buffer. All uniforms must use the shared buffer returned by Engine.getPostProcessBuffer(), Engine.getBackgroundBuffer(), or PostProcessManager.getBuffer().',
 			);
 		});
 

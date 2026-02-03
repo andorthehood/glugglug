@@ -122,6 +122,12 @@ export class BackgroundEffectManager {
 			return false;
 		}
 
+		// Save current blend state and disable blending for fullscreen background pass
+		const blendEnabled = this.gl.isEnabled(this.gl.BLEND);
+		if (blendEnabled) {
+			this.gl.disable(this.gl.BLEND);
+		}
+
 		// Bind full-screen quad
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
 
@@ -183,6 +189,11 @@ export class BackgroundEffectManager {
 
 		// Render full-screen quad
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+		// Restore blend state
+		if (blendEnabled) {
+			this.gl.enable(this.gl.BLEND);
+		}
 
 		return true;
 	}

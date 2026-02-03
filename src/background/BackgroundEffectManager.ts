@@ -15,7 +15,6 @@ export class BackgroundEffectManager {
 	private program: WebGLProgram | null = null;
 	private uniformLocations: Map<string, WebGLUniformLocation> = new Map();
 	private sharedBuffer: Float32Array;
-	private bufferSize: number;
 	private positionBuffer: WebGLBuffer | null;
 
 	// Standard uniform locations for the active effect
@@ -24,7 +23,6 @@ export class BackgroundEffectManager {
 
 	constructor(gl: WebGL2RenderingContext, bufferSize: number = 256) {
 		this.gl = gl;
-		this.bufferSize = bufferSize;
 		this.sharedBuffer = new Float32Array(bufferSize);
 
 		// Create position buffer for full-screen quad

@@ -72,15 +72,21 @@ export class PostProcessManager {
 					);
 				}
 
-				if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
-					throw new Error(
-						`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be integers between 1 and 4.`,
-					);
+				// size is optional in the mapping; if omitted, it defaults to 1 (see render logic).
+				// When provided, validate that it is an integer between 1 and 4.
+				if (size !== undefined) {
+					if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
+						throw new Error(
+							`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be integers between 1 and 4.`,
+						);
+					}
 				}
 
-				if (offset + size > this.sharedBuffer.length) {
+				const effectiveSize = typeof size === 'number' ? size : 1;
+
+				if (offset + effectiveSize > this.sharedBuffer.length) {
 					throw new Error(
-						`Uniform "${uniformName}" with offset ${offset} and size ${size} exceeds the shared buffer length (${this.sharedBuffer.length}).`,
+						`Uniform "${uniformName}" with offset ${offset} and size ${effectiveSize} exceeds the shared buffer length (${this.sharedBuffer.length}).`,
 					);
 				}
 			}

@@ -61,6 +61,34 @@ export class PostProcessManager {
 						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
 					);
 				}
+
+				// Validate offset and size for the shared buffer
+				const offset = (mapping as any).offset;
+				const size = (mapping as any).size;
+
+				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
+					throw new Error(
+						`Uniform "${uniformName}" has an invalid offset (${offset}). Offsets must be non-negative integers.`,
+					);
+				}
+
+				// size is optional in the mapping; if omitted, it defaults to 1 (see render logic).
+				// When provided, validate that it is an integer between 1 and 4.
+				if (size !== undefined) {
+					if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
+						throw new Error(
+							`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be integers between 1 and 4.`,
+						);
+					}
+				}
+
+				const effectiveSize = typeof size === 'number' ? size : 1;
+
+				if (offset + effectiveSize > this.sharedBuffer.length) {
+					throw new Error(
+						`Uniform "${uniformName}" with offset ${offset} and size ${effectiveSize} exceeds the shared buffer length (${this.sharedBuffer.length}).`,
+					);
+				}
 			}
 		}
 

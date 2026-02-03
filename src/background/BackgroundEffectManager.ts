@@ -67,13 +67,13 @@ export class BackgroundEffectManager {
 
 				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
 					throw new Error(
-						`Uniform "${uniformName}" has an invalid offset "${offset}". Offset must be a non-negative integer.`,
+						`Uniform "${uniformName}" has an invalid offset (${offset}). Offset must be a non-negative integer.`,
 					);
 				}
 
 				if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
 					throw new Error(
-						`Uniform "${uniformName}" has an invalid size "${size}". Size must be an integer between 1 and 4.`,
+						`Uniform "${uniformName}" has an invalid size (${size}). Size must be an integer between 1 and 4.`,
 					);
 				}
 

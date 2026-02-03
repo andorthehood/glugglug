@@ -409,24 +409,29 @@ describe('Engine - Unified API', () => {
 		});
 
 		test('should render background effect before sprites', () => {
-			// First, render without a background effect to get baseline useProgram calls
-			renderer.renderWithPostProcessing(0);
-			const baselineUseProgramCalls = (mockGL.useProgram as jest.Mock).mock.calls.length;
-			jest.clearAllMocks();
-
 			// Set up a background effect
 			renderer.setBackgroundEffect({
 				vertexShader: 'vertex source',
 				fragmentShader: 'fragment source',
 			});
 
+			// Clear mock calls to start fresh
+			jest.clearAllMocks();
+
 			// Render with post-processing
 			renderer.renderWithPostProcessing(0);
 
-			// Verify that useProgram was called MORE times with background effect
-			// (once for background shader, then for sprite shader)
-			const useProgramCalls = (mockGL.useProgram as jest.Mock).mock.calls;
-			expect(useProgramCalls.length).toBeGreaterThan(baselineUseProgramCalls);
+			// Verify that the background quad (TRIANGLE_STRIP) is drawn before sprite triangles
+			const drawArraysCalls = (mockGL.drawArrays as jest.Mock).mock.calls;
+			const backgroundCallIndex = drawArraysCalls.findIndex(call => call[0] === mockGL.TRIANGLE_STRIP);
+			const spriteCallIndex = drawArraysCalls.findIndex(call => call[0] === mockGL.TRIANGLES);
+
+			// Ensure both background and sprite draws occurred
+			expect(backgroundCallIndex).not.toBe(-1);
+			expect(spriteCallIndex).not.toBe(-1);
+
+			// Ensure background effect rendered before sprites
+			expect(backgroundCallIndex).toBeLessThan(spriteCallIndex);
 		});
 
 		test('should restore sprite state after background effect renders', () => {

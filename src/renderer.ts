@@ -87,6 +87,14 @@ export class Renderer {
 		this.glTextureCoordinateBuffer = this.gl.createBuffer(); // UV coordinates buffer
 		this.glPositionBuffer = this.gl.createBuffer(); // vertex positions buffer
 
+		// Validate buffer creation up-front to avoid null issues later
+		if (!this.glTextureCoordinateBuffer) {
+			throw new Error('Failed to create sprite texture coordinate buffer.');
+		}
+		if (!this.glPositionBuffer) {
+			throw new Error('Failed to create sprite position buffer.');
+		}
+
 		this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height); // defines rendering area
 		this.gl.clearColor(0, 0, 0, 1.0); // set clear color to black (RGBA)
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT); // fills with clearColor
@@ -318,18 +326,12 @@ export class Renderer {
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord');
 
 		if (a_position !== -1) {
-			if (!this.glPositionBuffer) {
-				throw new Error('Sprite position buffer is not initialized.');
-			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glPositionBuffer);
 			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
 			this.gl.enableVertexAttribArray(a_position);
 		}
 
 		if (a_texcoord !== -1) {
-			if (!this.glTextureCoordinateBuffer) {
-				throw new Error('Sprite texture coordinate buffer is not initialized.');
-			}
 			this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.glTextureCoordinateBuffer);
 			this.gl.vertexAttribPointer(a_texcoord, 2, this.gl.FLOAT, false, 0, 0);
 			this.gl.enableVertexAttribArray(a_texcoord);

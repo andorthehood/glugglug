@@ -1,5 +1,6 @@
 import createProgram from '../utils/createProgram';
 import createShader from '../utils/createShader';
+import { validateUniformMappings } from '../utils/effectValidation';
 
 import type { BackgroundEffect } from '../types/background';
 import type { EffectUniforms } from '../types/postProcess';
@@ -52,44 +53,7 @@ export class BackgroundEffectManager {
 		this.clearEffect();
 
 		// Validate uniform buffer mappings BEFORE shader compilation to avoid GPU leaks
-		if (effect.uniforms) {
-			for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
-				// Validate that all mappings reference this manager's shared buffer
-				if (mapping.buffer !== this.sharedBuffer) {
-					throw new Error(
-						`Uniform "${uniformName}" references a different buffer. All uniforms must use the buffer from getBuffer().`,
-					);
-				}
-
-				// Validate offset and size to prevent out-of-bounds accesses and NaN uniforms
-				const offset = (mapping as any).offset;
-				const size = (mapping as any).size;
-
-				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
-					throw new Error(
-						`Uniform "${uniformName}" has an invalid offset (${offset}). Offsets must be non-negative integers.`,
-					);
-				}
-
-				// size is optional in the mapping; if omitted, it defaults to 1 (see render logic).
-				// When provided, validate that it is an integer between 1 and 4.
-				if (size !== undefined) {
-					if (typeof size !== 'number' || !Number.isInteger(size) || size < 1 || size > 4) {
-						throw new Error(
-							`Uniform "${uniformName}" has an invalid size (${size}). Sizes must be integers between 1 and 4.`,
-						);
-					}
-				}
-
-				const effectiveSize = typeof size === 'number' ? size : 1;
-
-				if (offset + effectiveSize > this.sharedBuffer.length) {
-					throw new Error(
-						`Uniform "${uniformName}" with offset ${offset} and size ${effectiveSize} exceeds the shared buffer length (${this.sharedBuffer.length}).`,
-					);
-				}
-			}
-		}
+		validateUniformMappings(effect.uniforms, this.sharedBuffer);
 
 		// Compile shaders
 		let vertexShader: WebGLShader | null = null;

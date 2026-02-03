@@ -11,11 +11,9 @@ export interface UniformBufferMapping {
  * Post-process effect definition
  */
 export interface PostProcessEffect {
-	name: string;
 	vertexShader: string;
 	fragmentShader: string;
 	uniforms?: Record<string, UniformBufferMapping>;
-	enabled?: boolean;
 }
 
 /**
@@ -23,13 +21,4 @@ export interface PostProcessEffect {
  */
 export interface EffectUniforms {
 	[key: string]: number | number[];
-}
-
-/**
- * Post-process pipeline configuration
- */
-export interface PostProcessPipeline {
-	effects: PostProcessEffect[];
-	sharedBuffer: Float32Array;
-	bufferSize: number;
 }

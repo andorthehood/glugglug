@@ -122,7 +122,7 @@ The engine renders in two phases each frame:
 
 ## Post-Processing Effects
 
-The engine supports custom post-processing effects through a flexible shader-based system with buffer-managed uniforms.
+The engine supports a single post-processing effect through a shader-based system with buffer-managed uniforms.
 
 ### Basic Example
 
@@ -134,7 +134,6 @@ const effectBuffer = new Float32Array(64);
 
 // Define scanline effect
 const scanlineEffect: PostProcessEffect = {
-  name: 'scanlines',
   vertexShader: `#version 300 es
     precision mediump float;
     in vec2 a_position;
@@ -168,12 +167,11 @@ const scanlineEffect: PostProcessEffect = {
   `,
   uniforms: {
     u_scanlineIntensity: { buffer: effectBuffer, offset: 0, size: 1 }
-  },
-  enabled: true
+  }
 };
 
-// Add effect to engine
-engine.addPostProcessEffect(scanlineEffect);
+// Set effect on engine (replaces any previous effect)
+engine.setPostProcessEffect(scanlineEffect);
 
 // Update uniform values
 engine.updatePostProcessUniforms({
@@ -196,9 +194,8 @@ const UNIFORMS = {
   COLOR_TINT: 4 // vec3, uses offsets 4,5,6
 };
 
-// Multiple effects sharing buffer
+// Effect with structured uniform buffer
 const crtEffect: PostProcessEffect = {
-  name: 'crt',
   vertexShader: '...', 
   fragmentShader: '...',
   uniforms: {
@@ -222,19 +219,13 @@ effectBuffer[UNIFORMS.DISTORTION_AMOUNT] = 0.25;
 ### Effect Management
 
 ```typescript
-// Add multiple effects (rendered in sequence)
-engine.addPostProcessEffect(distortionEffect);
-engine.addPostProcessEffect(scanlineEffect);
-engine.addPostProcessEffect(vignetteEffect);
+// Set the active effect (replaces any previous effect)
+engine.setPostProcessEffect(crtEffect);
 
-// Toggle effects
-engine.setPostProcessEffectEnabled('scanlines', false);
-engine.setPostProcessEffectEnabled('scanlines', true);
+// Clear the active effect (reverts to passthrough)
+engine.clearPostProcessEffect();
 
-// Remove effects
-engine.removePostProcessEffect('vignette');
-
-// Direct buffer access for high-performance updates
+// Direct buffer access for high-performance uniform updates
 const buffer = engine.getPostProcessBuffer();
 buffer[0] = Math.sin(Date.now() * 0.001) * 0.5; // animate scanline intensity
 ```
@@ -373,17 +364,14 @@ setUniform(name: string, ...values: number[]): void
 
 #### Post-Processing Effects
 ```typescript
-// Add post-processing effect
-addPostProcessEffect(effect: PostProcessEffect): void
+// Set the active post-process effect (replaces any previous)
+setPostProcessEffect(effect: PostProcessEffect): void
 
-// Remove effect
-removePostProcessEffect(name: string): void
+// Clear the active post-process effect
+clearPostProcessEffect(): void
 
 // Update uniform values in shared buffer
 updatePostProcessUniforms(uniforms: Record<string, number | number[]>): void
-
-// Enable/disable effect
-setPostProcessEffectEnabled(name: string, enabled: boolean): void
 
 // Get direct buffer access
 getPostProcessBuffer(): Float32Array
@@ -402,11 +390,9 @@ type SpriteCoordinates = {
 type SpriteLookup = Record<string | number, SpriteCoordinates>;
 
 type PostProcessEffect = {
-  name: string;
   vertexShader: string;
   fragmentShader: string;
   uniforms?: Record<string, UniformBufferMapping>;
-  enabled?: boolean;
 };
 
 type UniformBufferMapping = {

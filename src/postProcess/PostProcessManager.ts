@@ -4,21 +4,21 @@ import createShader from '../utils/createShader';
 import type { PostProcessEffect, EffectUniforms } from '../types/postProcess';
 
 /**
- * Manages post-processing effects with buffer-based uniforms
+ * Manages a single post-processing effect with buffer-based uniforms
  */
 export class PostProcessManager {
 	private gl: WebGL2RenderingContext;
-	private effects: PostProcessEffect[] = [];
-	private programs: Map<string, WebGLProgram> = new Map();
-	private uniformLocations: Map<string, Map<string, WebGLUniformLocation>> = new Map();
+	private effect: PostProcessEffect | null = null;
+	private program: WebGLProgram | null = null;
+	private uniformLocations: Map<string, WebGLUniformLocation> = new Map();
 	private sharedBuffer: Float32Array;
 	private bufferSize: number;
 	private positionBuffer: WebGLBuffer;
 
-	// Standard uniforms that are always available
-	private timeLocation: Map<string, WebGLUniformLocation> = new Map();
-	private resolutionLocation: Map<string, WebGLUniformLocation> = new Map();
-	private textureLocation: Map<string, WebGLUniformLocation> = new Map();
+	// Standard uniform locations for the active effect
+	private timeLocation: WebGLUniformLocation | null = null;
+	private resolutionLocation: WebGLUniformLocation | null = null;
+	private textureLocation: WebGLUniformLocation | null = null;
 
 	// Fallback rendering (simple texture passthrough)
 	private fallbackProgram: WebGLProgram | null = null;
@@ -46,77 +46,62 @@ export class PostProcessManager {
 	}
 
 	/**
-	 * Add a post-process effect to the pipeline
+	 * Set the active post-process effect, replacing any previous one
 	 */
-	addEffect(effect: PostProcessEffect): void {
+	setEffect(effect: PostProcessEffect): void {
+		// Clear previous effect if any
+		this.clearEffect();
+
 		// Compile shaders
-		const program = createProgram(this.gl, [
+		this.program = createProgram(this.gl, [
 			createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER),
 			createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER),
 		]);
 
-		this.programs.set(effect.name, program);
+		// Get standard uniform locations
+		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time');
+		this.resolutionLocation = this.gl.getUniformLocation(this.program, 'u_resolution');
+		this.textureLocation = this.gl.getUniformLocation(this.program, 'u_renderTexture');
 
-		// Get uniform locations
-		const uniforms = new Map<string, WebGLUniformLocation>();
-
-		// Standard uniforms
-		const timeLocation = this.gl.getUniformLocation(program, 'u_time');
-		if (timeLocation) this.timeLocation.set(effect.name, timeLocation);
-
-		const resolutionLocation = this.gl.getUniformLocation(program, 'u_resolution');
-		if (resolutionLocation) this.resolutionLocation.set(effect.name, resolutionLocation);
-
-		const textureLocation = this.gl.getUniformLocation(program, 'u_renderTexture');
-		if (textureLocation) this.textureLocation.set(effect.name, textureLocation);
-
-		// Custom uniforms from buffer mapping
+		// Get custom uniform locations from buffer mapping
+		this.uniformLocations.clear();
 		if (effect.uniforms) {
 			for (const uniformName of Object.keys(effect.uniforms)) {
-				const location = this.gl.getUniformLocation(program, uniformName);
+				const location = this.gl.getUniformLocation(this.program, uniformName);
 				if (location) {
-					uniforms.set(uniformName, location);
+					this.uniformLocations.set(uniformName, location);
 				}
 			}
 		}
 
-		this.uniformLocations.set(effect.name, uniforms);
-		this.effects.push(effect);
+		this.effect = effect;
 	}
 
 	/**
 	 * Update uniform values in the shared buffer
 	 */
 	updateUniforms(uniforms: EffectUniforms): void {
+		if (!this.effect?.uniforms) return;
+
 		for (const [uniformName, value] of Object.entries(uniforms)) {
-			// Find which effect uses this uniform
-			for (const effect of this.effects) {
-				if (effect.uniforms && effect.uniforms[uniformName]) {
-					const mapping = effect.uniforms[uniformName];
-					if (Array.isArray(value)) {
-						// Vector uniform
-						for (let i = 0; i < value.length && i < (mapping.size || 1); i++) {
-							this.sharedBuffer[mapping.offset + i] = value[i];
-						}
-					} else {
-						// Scalar uniform
-						this.sharedBuffer[mapping.offset] = value;
-					}
-					break;
+			const mapping = this.effect.uniforms[uniformName];
+			if (!mapping) continue;
+
+			if (Array.isArray(value)) {
+				for (let i = 0; i < value.length && i < (mapping.size || 1); i++) {
+					this.sharedBuffer[mapping.offset + i] = value[i];
 				}
+			} else {
+				this.sharedBuffer[mapping.offset] = value;
 			}
 		}
 	}
 
 	/**
-	 * Render all enabled effects in sequence, with fallback for no effects
+	 * Render the active effect, or fall back to passthrough when none is set
 	 */
 	render(renderTexture: WebGLTexture, elapsedTime: number, canvasWidth: number, canvasHeight: number): void {
-		// Check if any effects are enabled
-		const enabledEffects = this.effects.filter(effect => effect.enabled !== false);
-
-		if (enabledEffects.length === 0) {
-			// Fallback: render texture directly to canvas without effects
+		if (!this.effect || !this.program) {
 			this.renderFallback(renderTexture);
 			return;
 		}
@@ -124,68 +109,57 @@ export class PostProcessManager {
 		// Bind full-screen quad
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.positionBuffer);
 
-		for (const effect of enabledEffects) {
-			const program = this.programs.get(effect.name);
-			if (!program) continue;
+		// Use effect shader
+		this.gl.useProgram(this.program);
 
-			// Use effect shader
-			this.gl.useProgram(program);
+		// Bind render texture
+		this.gl.activeTexture(this.gl.TEXTURE0);
+		this.gl.bindTexture(this.gl.TEXTURE_2D, renderTexture);
 
-			// Bind render texture
-			this.gl.activeTexture(this.gl.TEXTURE0);
-			this.gl.bindTexture(this.gl.TEXTURE_2D, renderTexture);
+		// Set standard uniforms
+		if (this.timeLocation) this.gl.uniform1f(this.timeLocation, elapsedTime);
+		if (this.resolutionLocation) this.gl.uniform2f(this.resolutionLocation, canvasWidth, canvasHeight);
+		if (this.textureLocation) this.gl.uniform1i(this.textureLocation, 0);
 
-			// Set standard uniforms
-			const timeLocation = this.timeLocation.get(effect.name);
-			if (timeLocation) this.gl.uniform1f(timeLocation, elapsedTime);
+		// Set custom uniforms from buffer
+		if (this.effect.uniforms) {
+			for (const [uniformName, mapping] of Object.entries(this.effect.uniforms)) {
+				const location = this.uniformLocations.get(uniformName);
+				if (location) {
+					const size = mapping.size || 1;
+					const values = this.sharedBuffer.slice(mapping.offset, mapping.offset + size);
 
-			const resolutionLocation = this.resolutionLocation.get(effect.name);
-			if (resolutionLocation) this.gl.uniform2f(resolutionLocation, canvasWidth, canvasHeight);
-
-			const textureLocation = this.textureLocation.get(effect.name);
-			if (textureLocation) this.gl.uniform1i(textureLocation, 0);
-
-			// Set custom uniforms from buffer
-			const uniforms = this.uniformLocations.get(effect.name);
-			if (uniforms && effect.uniforms) {
-				for (const [uniformName, mapping] of Object.entries(effect.uniforms)) {
-					const location = uniforms.get(uniformName);
-					if (location) {
-						const size = mapping.size || 1;
-						const values = this.sharedBuffer.slice(mapping.offset, mapping.offset + size);
-
-						switch (size) {
-							case 1:
-								this.gl.uniform1f(location, values[0]);
-								break;
-							case 2:
-								this.gl.uniform2f(location, values[0], values[1]);
-								break;
-							case 3:
-								this.gl.uniform3f(location, values[0], values[1], values[2]);
-								break;
-							case 4:
-								this.gl.uniform4f(location, values[0], values[1], values[2], values[3]);
-								break;
-						}
+					switch (size) {
+						case 1:
+							this.gl.uniform1f(location, values[0]);
+							break;
+						case 2:
+							this.gl.uniform2f(location, values[0], values[1]);
+							break;
+						case 3:
+							this.gl.uniform3f(location, values[0], values[1], values[2]);
+							break;
+						case 4:
+							this.gl.uniform4f(location, values[0], values[1], values[2], values[3]);
+							break;
 					}
 				}
 			}
-
-			// Configure vertex attributes
-			const a_position = this.gl.getAttribLocation(program, 'a_position');
-			if (a_position !== -1) {
-				this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
-				this.gl.enableVertexAttribArray(a_position);
-			}
-
-			// Render full-screen quad
-			this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 		}
+
+		// Configure vertex attributes
+		const a_position = this.gl.getAttribLocation(this.program, 'a_position');
+		if (a_position !== -1) {
+			this.gl.vertexAttribPointer(a_position, 2, this.gl.FLOAT, false, 0, 0);
+			this.gl.enableVertexAttribArray(a_position);
+		}
+
+		// Render full-screen quad
+		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 	}
 
 	/**
-	 * Fallback rendering - simple texture passthrough when no effects are enabled
+	 * Fallback rendering - simple texture passthrough when no effect is set
 	 */
 	private renderFallback(renderTexture: WebGLTexture): void {
 		// Create simple passthrough shaders if not already created
@@ -256,49 +230,19 @@ void main() {
 	}
 
 	/**
-	 * Remove an effect from the pipeline
+	 * Remove the active effect and free its GPU program
 	 */
-	removeEffect(name: string): void {
-		const program = this.programs.get(name);
-		if (program) {
-			this.gl.deleteProgram(program);
-			this.programs.delete(name);
+	clearEffect(): void {
+		if (this.program) {
+			this.gl.deleteProgram(this.program);
+			this.program = null;
 		}
 
-		this.uniformLocations.delete(name);
-		this.timeLocation.delete(name);
-		this.resolutionLocation.delete(name);
-		this.textureLocation.delete(name);
-
-		this.effects = this.effects.filter(effect => effect.name !== name);
-	}
-
-	/**
-	 * Remove all effects from the pipeline and free their GPU programs
-	 */
-	removeAllEffects(): void {
-		// Delete all effect programs
-		for (const program of this.programs.values()) {
-			this.gl.deleteProgram(program);
-		}
-
-		// Clear all effect-related state
-		this.programs.clear();
 		this.uniformLocations.clear();
-		this.timeLocation.clear();
-		this.resolutionLocation.clear();
-		this.textureLocation.clear();
-		this.effects.length = 0;
-	}
-
-	/**
-	 * Enable or disable an effect
-	 */
-	setEffectEnabled(name: string, enabled: boolean): void {
-		const effect = this.effects.find(e => e.name === name);
-		if (effect) {
-			effect.enabled = enabled;
-		}
+		this.timeLocation = null;
+		this.resolutionLocation = null;
+		this.textureLocation = null;
+		this.effect = null;
 	}
 
 	/**
@@ -312,10 +256,9 @@ void main() {
 	 * Clean up resources
 	 */
 	dispose(): void {
-		for (const program of this.programs.values()) {
-			this.gl.deleteProgram(program);
+		if (this.program) {
+			this.gl.deleteProgram(this.program);
 		}
-		this.programs.clear();
 		this.uniformLocations.clear();
 
 		if (this.positionBuffer) {

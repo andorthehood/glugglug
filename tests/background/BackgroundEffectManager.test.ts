@@ -79,6 +79,156 @@ describe('BackgroundEffectManager', () => {
 			);
 		});
 
+		it('should throw error for negative offset', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: -1, // Invalid negative offset
+						size: 1,
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" has an invalid offset (-1). Offsets must be non-negative integers.',
+			);
+		});
+
+		it('should throw error for non-integer offset', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 1.5, // Invalid non-integer offset
+						size: 1,
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" has an invalid offset (1.5). Offsets must be non-negative integers.',
+			);
+		});
+
+		it('should throw error for size less than 1', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 0,
+						size: 0, // Invalid size
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" has an invalid size (0). Sizes must be integers between 1 and 4.',
+			);
+		});
+
+		it('should throw error for size greater than 4', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 0,
+						size: 5, // Invalid size
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" has an invalid size (5). Sizes must be integers between 1 and 4.',
+			);
+		});
+
+		it('should throw error for non-integer size', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 0,
+						size: 2.5, // Invalid non-integer size
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" has an invalid size (2.5). Sizes must be integers between 1 and 4.',
+			);
+		});
+
+		it('should throw error when offset + size exceeds buffer length', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 254, // offset + size = 258 > 256
+						size: 4,
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" with offset 254 and size 4 exceeds the shared buffer length (256).',
+			);
+		});
+
+		it('should accept effect when size is omitted (defaults to 1)', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 0,
+						// size omitted, should default to 1
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).not.toThrow();
+		});
+
+		it('should throw error when offset with default size exceeds buffer length', () => {
+			const correctBuffer = manager.getBuffer();
+			const effect: BackgroundEffect = {
+				vertexShader: 'void main() {}',
+				fragmentShader: 'void main() {}',
+				uniforms: {
+					testUniform: {
+						buffer: correctBuffer,
+						offset: 256, // offset + default size (1) = 257 > 256
+						// size omitted
+					},
+				},
+			};
+
+			expect(() => manager.setEffect(effect)).toThrow(
+				'Uniform "testUniform" with offset 256 and size 1 exceeds the shared buffer length (256).',
+			);
+		});
+
 		it('should not create GPU program when buffer validation fails', () => {
 			const wrongBuffer = new Float32Array(256);
 			const effect: BackgroundEffect = {

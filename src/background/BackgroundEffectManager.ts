@@ -62,8 +62,8 @@ export class BackgroundEffectManager {
 				}
 
 				// Validate offset and size to prevent out-of-bounds accesses and NaN uniforms
-				const offset = (mapping as any).offset;
-				const size = (mapping as any).size;
+				const offset = mapping.offset;
+				const size = mapping.size;
 
 				if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) {
 					throw new Error(

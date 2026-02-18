@@ -399,6 +399,11 @@ export class Engine {
 			this.savedOffsetY = null;
 		}
 
+		// Draw newly created cache immediately to avoid a one-frame gap on invalidation.
+		if (created) {
+			this.drawCachedContent(cacheId, 0, 0);
+		}
+
 		return created;
 	}
 

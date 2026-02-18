@@ -252,6 +252,15 @@ describe('Engine - Unified API', () => {
 			expect(ran).toBe(false);
 		});
 
+		test('should draw newly created cache content in the same call', () => {
+			const drawCachedContentSpy = jest.spyOn(engine, 'drawCachedContent');
+
+			const created = engine.cacheGroup('immediate-draw-cache', 200, 150, () => {});
+
+			expect(created).toBe(true);
+			expect(drawCachedContentSpy).toHaveBeenCalledWith('immediate-draw-cache', 0, 0);
+		});
+
 		test('should handle enabled parameter in cacheGroup', () => {
 			let ran = false;
 

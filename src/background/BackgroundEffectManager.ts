@@ -1,6 +1,7 @@
 import createProgram from '../utils/createProgram';
 import createShader from '../utils/createShader';
 import { validateUniformMappings } from '../utils/effectValidation';
+import { FULLSCREEN_QUAD_VERTEX_SHADER } from '../shaders/fullscreenQuadVertexShader';
 
 import type { BackgroundEffect } from '../types/background';
 import type { EffectUniforms } from '../types/postProcess';
@@ -58,7 +59,7 @@ export class BackgroundEffectManager {
 		let fragmentShader: WebGLShader | null = null;
 
 		try {
-			vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+			vertexShader = createShader(this.gl, effect.vertexShader ?? FULLSCREEN_QUAD_VERTEX_SHADER, this.gl.VERTEX_SHADER);
 			fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
 			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
 

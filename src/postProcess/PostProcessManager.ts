@@ -1,6 +1,7 @@
 import createProgram from '../utils/createProgram';
 import createShader from '../utils/createShader';
 import { validateUniformMappings } from '../utils/effectValidation';
+import { FULLSCREEN_QUAD_VERTEX_SHADER } from '../shaders/fullscreenQuadVertexShader';
 
 import type { PostProcessEffect, EffectUniforms } from '../types/postProcess';
 
@@ -61,7 +62,7 @@ export class PostProcessManager {
 		let fragmentShader: WebGLShader | null = null;
 
 		try {
-			vertexShader = createShader(this.gl, effect.vertexShader, this.gl.VERTEX_SHADER);
+			vertexShader = createShader(this.gl, effect.vertexShader ?? FULLSCREEN_QUAD_VERTEX_SHADER, this.gl.VERTEX_SHADER);
 			fragmentShader = createShader(this.gl, effect.fragmentShader, this.gl.FRAGMENT_SHADER);
 			this.program = createProgram(this.gl, [fragmentShader, vertexShader]);
 
@@ -214,17 +215,6 @@ export class PostProcessManager {
 	 * Create simple fallback shaders for texture passthrough
 	 */
 	private createFallbackShaders(): void {
-		const fallbackVertexShader = `#version 300 es
-precision mediump float;
-in vec2 a_position;
-out vec2 v_screenCoord;
-
-void main() {
-	gl_Position = vec4(a_position, 0, 1);
-	v_screenCoord = (a_position + 1.0) / 2.0;
-}
-`;
-
 		const fallbackFragmentShader = `#version 300 es
 precision mediump float;
 in vec2 v_screenCoord;
@@ -241,7 +231,7 @@ void main() {
 		let fragmentShader: WebGLShader | null = null;
 
 		try {
-			vertexShader = createShader(this.gl, fallbackVertexShader, this.gl.VERTEX_SHADER);
+			vertexShader = createShader(this.gl, FULLSCREEN_QUAD_VERTEX_SHADER, this.gl.VERTEX_SHADER);
 			fragmentShader = createShader(this.gl, fallbackFragmentShader, this.gl.FRAGMENT_SHADER);
 			this.fallbackProgram = createProgram(this.gl, [fragmentShader, vertexShader]);
 

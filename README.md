@@ -390,7 +390,7 @@ type SpriteCoordinates = {
 type SpriteLookup = Record<string | number, SpriteCoordinates>;
 
 type PostProcessEffect = {
-  vertexShader: string;
+  vertexShader?: string; // defaults to built-in fullscreen quad shader when omitted
   fragmentShader: string;
   uniforms?: Record<string, UniformBufferMapping>;
 };

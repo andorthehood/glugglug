@@ -11,7 +11,7 @@ export interface UniformBufferMapping {
  * Post-process effect definition
  */
 export interface PostProcessEffect {
-	vertexShader: string;
+	vertexShader?: string;
 	fragmentShader: string;
 	uniforms?: Record<string, UniformBufferMapping>;
 }

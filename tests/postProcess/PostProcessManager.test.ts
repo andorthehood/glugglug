@@ -1,4 +1,5 @@
 import { PostProcessManager } from '../../src/postProcess/PostProcessManager';
+import { FULLSCREEN_QUAD_VERTEX_SHADER } from '../../src/shaders/fullscreenQuadVertexShader';
 import type { PostProcessEffect } from '../../src/types/postProcess';
 import { runBufferValidationTests } from '../utils/sharedBufferValidation';
 
@@ -208,6 +209,15 @@ describe('PostProcessManager', () => {
 			};
 
 			expect(() => manager.setEffect(effect)).not.toThrow();
+		});
+
+		it('should use built-in fullscreen vertex shader when vertexShader is omitted', () => {
+			const effect: PostProcessEffect = {
+				fragmentShader: 'void main() {}',
+			};
+
+			expect(() => manager.setEffect(effect)).not.toThrow();
+			expect(gl.shaderSource).toHaveBeenNthCalledWith(1, mockShader, FULLSCREEN_QUAD_VERTEX_SHADER);
 		});
 	});
 });

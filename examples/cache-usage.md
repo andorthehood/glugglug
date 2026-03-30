@@ -32,11 +32,11 @@ engine.cacheGroup('ui-panel', 200, 100, () => {
     engine.drawSprite(10, 10, 'button');
     engine.drawSprite(60, 10, 'button');
     engine.drawText(20, 50, 'Menu');
-}); // Now cached for future frames
+}, true, 0.85); // Now cached for future frames, replayed with 85% alpha
 
 engine.render((timeToRender, fps, triangles, maxTriangles) => {
     // Draw cached UI panel - very fast!
-    engine.drawCachedContent('ui-panel', 0, 0);
+    engine.drawCachedContent('ui-panel', 0, 0, 0.85);
     
     // Draw dynamic content normally
     engine.drawSprite(player.x, player.y, 'player');
@@ -96,12 +96,12 @@ cacheGameUI();
 // Use in render loop
 engine.render((timeToRender, fps, triangles, maxTriangles) => {
     if (gameState === 'menu') {
-        engine.drawCachedContent('main-menu', 200, 150);
+        engine.drawCachedContent('main-menu', 200, 150, 1);
     } else if (gameState === 'paused') {
-        engine.drawCachedContent('pause-menu', 250, 200);
+        engine.drawCachedContent('pause-menu', 250, 200, 0.9);
     } else {
         // Draw dynamic HUD over static background
-        engine.drawCachedContent('hud-static', 0, 0);
+        engine.drawCachedContent('hud-static', 0, 0, 0.8);
         engine.drawSprite(15, 15, `health-${player.health}`);
         engine.drawSprite(15, 55, `mana-${player.mana}`);
     }

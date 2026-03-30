@@ -258,7 +258,27 @@ describe('Engine - Unified API', () => {
 			const created = engine.cacheGroup('immediate-draw-cache', 200, 150, () => {});
 
 			expect(created).toBe(true);
-			expect(drawCachedContentSpy).toHaveBeenCalledWith('immediate-draw-cache', 0, 0);
+			expect(drawCachedContentSpy).toHaveBeenCalledWith('immediate-draw-cache', 0, 0, 1);
+		});
+
+		test('should forward alpha when drawing newly created cache content', () => {
+			const drawCachedContentSpy = jest.spyOn(engine, 'drawCachedContent');
+
+			const created = engine.cacheGroup('alpha-cache', 200, 150, () => {}, true, 0.4);
+
+			expect(created).toBe(true);
+			expect(drawCachedContentSpy).toHaveBeenCalledWith('alpha-cache', 0, 0, 0.4);
+		});
+
+		test('should forward alpha when reusing existing cache content', () => {
+			engine.cacheGroup('alpha-cache', 200, 150, () => {});
+
+			const drawCachedContentSpy = jest.spyOn(engine, 'drawCachedContent');
+
+			const created = engine.cacheGroup('alpha-cache', 200, 150, () => {}, true, 0.25);
+
+			expect(created).toBe(false);
+			expect(drawCachedContentSpy).toHaveBeenCalledWith('alpha-cache', 0, 0, 0.25);
 		});
 
 		test('should handle enabled parameter in cacheGroup', () => {
@@ -324,6 +344,17 @@ describe('Engine - Unified API', () => {
 			stats = engine.getCacheStats();
 			expect(stats.itemCount).toBe(1);
 			expect(stats.accessOrder).toContain('stats-test');
+		});
+
+		test('should forward alpha to cached texture replay', () => {
+			engine.cacheGroup('alpha-cache', 100, 100, () => {});
+
+			const cachedRenderer = (engine as any).renderer;
+			const drawCachedTextureSpy = jest.spyOn(cachedRenderer, 'drawCachedTexture');
+
+			engine.drawCachedContent('alpha-cache', 10, 20, 0.6);
+
+			expect(drawCachedTextureSpy).toHaveBeenCalledWith(mockTexture, 100, 100, 10, 20, 0.6);
 		});
 	});
 

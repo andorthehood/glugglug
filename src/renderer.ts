@@ -31,6 +31,7 @@ export class Renderer {
 	bufferSize: number;
 	bufferCounter: number;
 	timeLocation: WebGLUniformLocation | null;
+	alphaLocation: WebGLUniformLocation | null;
 	isPerformanceMeasurementMode: boolean;
 
 	// Post-processing
@@ -79,6 +80,7 @@ export class Renderer {
 		const a_position = this.gl.getAttribLocation(this.program, 'a_position'); // vertex position attribute
 		const a_texcoord = this.gl.getAttribLocation(this.program, 'a_texcoord'); // texture coordinate attribute
 		this.timeLocation = this.gl.getUniformLocation(this.program, 'u_time'); // time uniform for animations
+		this.alphaLocation = this.gl.getUniformLocation(this.program, 'u_alpha');
 
 		// Create GPU buffers (returns WebGLBuffer objects, data uploaded later)
 		this.glTextureCoordinateBuffer = this.gl.createBuffer(); // UV coordinates buffer
@@ -108,6 +110,9 @@ export class Renderer {
 		const textureLocation = this.gl.getUniformLocation(this.program, 'u_texture');
 		if (textureLocation) {
 			this.gl.uniform1i(textureLocation, 0); // Tell shader to sample from texture unit 0
+		}
+		if (this.alphaLocation) {
+			this.gl.uniform1f(this.alphaLocation, 1.0);
 		}
 
 		// Configure vertex attributes (tells GPU how to read buffer data)
@@ -169,6 +174,14 @@ export class Renderer {
 		this.spriteSheet = createTexture(this.gl, image);
 		this.spriteSheetWidth = image.width;
 		this.spriteSheetHeight = image.height;
+	}
+
+	setAlpha(alpha: number): void {
+		if (!this.alphaLocation) {
+			return;
+		}
+
+		this.gl.uniform1f(this.alphaLocation, alpha);
 	}
 
 	/**

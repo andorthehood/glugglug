@@ -80,7 +80,7 @@ engine.render((timeToRender, fps, triangles, maxTriangles) => {
     engine.drawSprite(10, 10, 'button');
     engine.drawSprite(60, 10, 'button');
     engine.drawText(20, 50, 'Menu');
-  }); // Draws cached version on subsequent frames
+  }, true, 0.85); // Draws cached version on subsequent frames with replay alpha
   
   // Draw dynamic content normally
   engine.drawSprite(player.x, player.y, 'player');
@@ -236,10 +236,11 @@ For complex or frequently reused content (UI panels, static HUD layers, repeated
 
 ### How caching works
 
-- Per-ID render targets: Each `cacheGroup(id, w, h, draw)` allocates a dedicated `WebGLTexture` + framebuffer sized to the group. The `draw` callback renders into that framebuffer instead of the main one.
+- Per-ID render targets: Each `cacheGroup(id, w, h, draw, enabled?, alpha?)` allocates a dedicated `WebGLTexture` + framebuffer sized to the group. The `draw` callback renders into that framebuffer instead of the main one.
 - Dedicated capture buffers: Cache capture uses dedicated CPU-side buffers so it never interferes with the frame’s in-progress buffers (prevents mid-frame flicker/blink).
 - Immediate first draw: When a cache is created, the engine draws that cache once in the same frame (at 0,0 by default) to avoid a first-frame blink. Reuse path also draws the cached texture.
 - Draw-order segments: During playback, the renderer records segments separating sprite-sheet draws from cached-texture draws, rebinding textures only when necessary to preserve order while minimizing state changes.
+- Replay alpha: `alpha` is applied only when the cached texture is replayed. It does not change the cached bitmap and does not require cache invalidation.
 - LRU eviction: Cache entries are tracked with access order and evicted (texture + framebuffer are deleted) when exceeding `maxCacheItems`.
 
 See examples in `packages/glugglug/examples/cache-usage.md`.
@@ -257,10 +258,10 @@ const engine = new Engine(canvas, options);
 engine.cacheGroup('ui-panel', 200, 100, () => {
   engine.drawSprite(10, 10, 'button');
   engine.drawText(20, 60, 'Menu');
-});
+}, true, 0.75);
 
-// Draw cached content at position
-engine.drawCachedContent('ui-panel', 20, 20);
+// Draw cached content at position, with optional replay alpha
+engine.drawCachedContent('ui-panel', 20, 20, 0.75);
 
 // Introspection and management
 engine.hasCachedContent('ui-panel');
@@ -295,6 +296,7 @@ When caching is **enabled**:
 - Resolution uniform: While capturing, `u_resolution` is set to the cache’s size; after capture it is restored to the canvas size.
 - No mid-frame canvas draws: Cache capture never flushes the current frame to the canvas; it binds the cache framebuffer first and uses dedicated buffers.
 - First-use parity: Creating a cache also schedules a quad to draw that cached texture in the same frame to match the reuse path.
+- Replay-only alpha: `alpha` affects only the cached quad draw. It is not part of the cache key and changing it does not recreate the cache.
 
 ### Best practices
 

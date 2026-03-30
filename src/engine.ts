@@ -361,7 +361,14 @@ export class Engine {
 	 * @param draw - Drawing callback executed when creating cache
 	 * @param enabled - Whether caching is enabled for this call (defaults to true)
 	 */
-	cacheGroup(cacheId: string, width: number, height: number, draw: () => void, enabled: boolean = true): boolean {
+	cacheGroup(
+		cacheId: string,
+		width: number,
+		height: number,
+		draw: () => void,
+		enabled: boolean = true,
+		alpha: number = 1
+	): boolean {
 		if (!this.cachingEnabled) {
 			// Caching not enabled: just draw with existing offsets
 			draw();
@@ -379,7 +386,7 @@ export class Engine {
 
 		// If cache exists, just draw it at current offset
 		if (cachedRenderer.hasCachedContent(cacheId)) {
-			this.drawCachedContent(cacheId, 0, 0);
+			this.drawCachedContent(cacheId, 0, 0, alpha);
 			return false;
 		}
 
@@ -401,7 +408,7 @@ export class Engine {
 
 		// Draw newly created cache immediately to avoid a one-frame gap on invalidation.
 		if (created) {
-			this.drawCachedContent(cacheId, 0, 0);
+			this.drawCachedContent(cacheId, 0, 0, alpha);
 		}
 
 		return created;
@@ -414,7 +421,7 @@ export class Engine {
 	 * @param x - X position to draw at
 	 * @param y - Y position to draw at
 	 */
-	drawCachedContent(cacheId: string, x: number, y: number): void {
+	drawCachedContent(cacheId: string, x: number, y: number, alpha: number = 1): void {
 		if (!this.cachingEnabled) {
 			return; // Exit silently when caching is not enabled
 		}
@@ -433,7 +440,7 @@ export class Engine {
 		const cacheData = cachedRenderer.getCachedData(cacheId);
 
 		if (cacheData) {
-			cachedRenderer.drawCachedTexture(cacheData.texture, cacheData.width, cacheData.height, x, y);
+			cachedRenderer.drawCachedTexture(cacheData.texture, cacheData.width, cacheData.height, x, y, alpha);
 		}
 	}
 

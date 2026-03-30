@@ -12,8 +12,9 @@ export class CachedRenderer extends Renderer {
 	private maxCacheItems: number;
 	private currentCacheId: string | null = null;
 	// Draw order segmentation: preserves relative order between sprite-sheet draws and cached quads
-	private segments: Array<{ texture: WebGLTexture | 'SPRITESHEET'; start: number; end?: number }> = [];
+	private segments: Array<{ texture: WebGLTexture | 'SPRITESHEET'; alpha: number; start: number; end?: number }> = [];
 	private currentSegmentTexture: WebGLTexture | 'SPRITESHEET' = 'SPRITESHEET';
+	private currentSegmentAlpha = 1;
 
 	// Dedicated CPU-side buffers for cache capture to avoid touching frame buffers
 	private cacheVertexBuffer: Float32Array;
@@ -54,7 +55,7 @@ export class CachedRenderer extends Renderer {
 	): void {
 		// Record that subsequent vertices belong to the sprite sheet segment (only during playback)
 		if (this.currentCacheId === null) {
-			this.ensureSegment('SPRITESHEET');
+			this.ensureSegment('SPRITESHEET', 1);
 		}
 		super.drawSpriteFromCoordinates(x, y, width, height, spriteX, spriteY, spriteWidth, spriteHeight);
 	}
@@ -71,7 +72,7 @@ export class CachedRenderer extends Renderer {
 		thickness: number
 	): void {
 		if (this.currentCacheId === null) {
-			this.ensureSegment('SPRITESHEET');
+			this.ensureSegment('SPRITESHEET', 1);
 		}
 		super.drawLineFromCoordinates(x1, y1, x2, y2, spriteX, spriteY, spriteWidth, spriteHeight, thickness);
 	}
@@ -217,18 +218,18 @@ export class CachedRenderer extends Renderer {
 	 * @param x - X position to draw at (default 0)
 	 * @param y - Y position to draw at (default 0)
 	 */
-	drawCachedTexture(texture: WebGLTexture, width: number, height: number, x: number = 0, y: number = 0): void {
+	drawCachedTexture(texture: WebGLTexture, width: number, height: number, x: number = 0, y: number = 0, alpha: number = 1): void {
 		// Never draw cached content while capturing a cache
 		if (this.currentCacheId !== null) return;
 
 		// Ensure a segment for this cached texture
-		this.ensureSegment(texture);
+		this.ensureSegment(texture, alpha);
 
 		// Auto-flush buffer if full (unlikely here, but safe)
 		if (this.bufferCounter + 12 > this.bufferSize) {
 			super.renderVertexBuffer();
 			this.resetBuffers();
-			this.ensureSegment(texture);
+			this.ensureSegment(texture, alpha);
 		}
 
 		// Append one textured quad
@@ -328,6 +329,7 @@ export class CachedRenderer extends Renderer {
 				const count = end - start;
 				if (count <= 0) continue;
 				this.gl.activeTexture(this.gl.TEXTURE0);
+				this.setAlpha(seg.alpha);
 				if (seg.texture === 'SPRITESHEET') {
 					if (this.spriteSheet) this.gl.bindTexture(this.gl.TEXTURE_2D, this.spriteSheet);
 				} else {
@@ -335,6 +337,7 @@ export class CachedRenderer extends Renderer {
 				}
 				this.gl.drawArrays(this.gl.TRIANGLES, start, count);
 			}
+			this.setAlpha(1);
 		} else {
 			// Fallback for capture mode
 			super.renderVertexBuffer();
@@ -348,25 +351,28 @@ export class CachedRenderer extends Renderer {
 		// Reset segments for next frame, keep counters for stats
 		this.segments.length = 0;
 		this.currentSegmentTexture = 'SPRITESHEET';
+		this.currentSegmentAlpha = 1;
 	}
 
-	private ensureSegment(texture: WebGLTexture | 'SPRITESHEET'): void {
+	private ensureSegment(texture: WebGLTexture | 'SPRITESHEET', alpha: number): void {
 		if (this.currentCacheId !== null) return; // don't record during capture
 		const currentVertexIndex = this.bufferCounter / 2;
 		if (this.segments.length === 0) {
 			// First segment of the frame
-			this.segments.push({ texture, start: currentVertexIndex });
+			this.segments.push({ texture, alpha, start: currentVertexIndex });
 			this.currentSegmentTexture = texture;
+			this.currentSegmentAlpha = alpha;
 			return;
 		}
-		if (this.currentSegmentTexture !== texture) {
+		if (this.currentSegmentTexture !== texture || this.currentSegmentAlpha !== alpha) {
 			// Close previous segment, if open
 			if (this.segments[this.segments.length - 1].end === undefined) {
 				this.segments[this.segments.length - 1].end = currentVertexIndex;
 			}
 			// Start new segment at current vertex index
-			this.segments.push({ texture, start: currentVertexIndex });
+			this.segments.push({ texture, alpha, start: currentVertexIndex });
 			this.currentSegmentTexture = texture;
+			this.currentSegmentAlpha = alpha;
 		}
 	}
 

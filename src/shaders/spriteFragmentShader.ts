@@ -11,6 +11,6 @@ out vec4 outColor;
 void main() {
 	vec2 uv = v_texcoord;
 	vec4 color = texture(u_texture, uv);
-	outColor = vec4(color.rgb, color.a * u_alpha);
+	outColor = color * u_alpha;
 }
 `;
